@@ -4,6 +4,21 @@ import { GraffitiRemote } from "@graffiti-garden/implementation-remote";
 import { GraffitiPlugin } from "@graffiti-garden/wrapper-vue";
 
 
+const JoinButton = {
+  props: {
+    joined: { type: Boolean, required: true }
+  },
+  emits: ['join'],
+  template: `
+    <button v-if="!joined" @click="$emit('join')">
+      Join
+    </button>
+    <span v-else class="joined-tag">
+      Joined
+    </span>
+  `
+};
+
 createApp({
   
   data() {
@@ -82,6 +97,10 @@ createApp({
     }
   },
 
+  components: {
+    JoinButton
+  },
+
   methods: {
     // DATA TRANSFORMATION AND USEFUL
     mergedChats(chatCandidates) {
@@ -143,7 +162,7 @@ createApp({
       await this.$nextTick();
     },
 
-    selectChat(chat) {
+    selectChat(chat, join = true) {
       this.currentChat = chat.channel ?? chat.value.object.channel;
       this.selectedChatName = chat.name ?? chat.value.object.name;
       this.bottomNavActive = 'chats';
@@ -154,7 +173,7 @@ createApp({
           channel: this.currentChat
         });
       }
-      if (!this.chatMembers[this.currentChat].includes(this.profile.username)) {
+      if (join && !this.chatMembers[this.currentChat].includes(this.profile.username)) {
         this.addSelfToChat();
       }
     },
@@ -261,6 +280,15 @@ createApp({
         },
         channels: ["designftw"]
       }, this.$graffitiSession.value);
+
+      let teamObj = this.teams.find(t => t.name === this.currentChat);
+      if (teamObj) {
+        this.joinTeam(teamObj);
+      }
+      let interestObj = this.interests.find(i => i.name === this.currentChat);
+      if (interestObj) {
+        this.joinInterest(interestObj);
+      }
     },
 
     async addMember() {
@@ -315,6 +343,13 @@ createApp({
         },
         channels: ["designftw"]
       }, session);
+    },
+
+    openChatOnly({ name, channel }) {
+      this.currentChat = channel
+      this.selectedChatName = name
+      this.bottomNavActive = 'chats'
+      this.chatMembers[channel] = this.chatMembers[channel] || []
     },
 
     // TEAM MANAGEMENT

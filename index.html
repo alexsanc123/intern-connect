@@ -52,18 +52,20 @@
                   <span>{{ team.name }}</span>
                   <div class="action-buttons">
                     <button @click="selectChat({ name: team.name, channel: team.name })">Chat</button>
-                    <button @click="leaveTeam(team)">Leave</button>
+                    <button class="leave-button" @click="leaveTeam(team)">Leave</button>
                   </div>
                 </li>
                 <li v-if="!profile.myTeams.length" class="empty-message">You haven't joined any teams yet.</li>
               </ul>
   
-              <h3>All Teams</h3>
+              <h3>Other Teams</h3>
               <ul>
-                <li v-for="team in teams.filter(t => t.name.toLowerCase().includes(searchTeams.toLowerCase()))" :key="team.name">
+                <li v-for="team in teams.filter(t => !profile.myTeams.includes(t.name) && t.name.toLowerCase().includes(searchTeams.toLowerCase()))" :key="team.name">
                   <span>{{ team.name }}</span>
-                  <button v-if="!profile.myTeams.includes(team.name)" @click="joinTeam(team)">Join</button>
-                  <span v-else class="joined-tag">Joined</span>
+                  <div class="action-buttons">
+                    <button @click="selectChat({ name: team.name, channel: team.name }, false)"> Chat</button>
+                    <join-button :joined="profile.myTeams.includes(team.name)" @join="joinTeam(team)"/>
+                  </div>
                 </li>
               </ul>
             </section>
@@ -77,18 +79,20 @@
                   <span>{{ interest.name }}</span>
                   <div class="action-buttons">
                     <button @click="selectChat({ name: interest.name, channel: interest.name })">Chat</button>
-                    <button @click="leaveInterest(interest)">Leave</button>
+                    <button class="leave-button" @click="leaveInterest(interest)">Leave</button>
                   </div>
                 </li>
                 <li v-if="!profile.myInterests.length" class="empty-message">You haven't joined any interests yet.</li>
               </ul>
   
-              <h3>All Interests</h3>
+              <h3>Other Interests</h3>
               <ul>
-                <li v-for="interest in interests.filter(i => i.name.toLowerCase().includes(searchInterests.toLowerCase()))" :key="interest.name">
+                <li v-for="interest in interests.filter(i => !profile.myInterests.includes(i.name) && i.name.toLowerCase().includes(searchInterests.toLowerCase()))" :key="interest.name">
                   <span>{{ interest.name }}</span>
-                  <button v-if="!profile.myInterests.includes(interest.name)" @click="joinInterest(interest)">Join</button>
-                  <span v-else class="joined-tag">Joined</span>
+                  <div class="action-buttons">
+                    <button @click="selectChat({ name: interest.name, channel: interest.name }, false)">Chat</button>
+                    <join-button :joined="profile.myInterests.includes(interest.name)"  @join="joinInterest(interest)"/>
+                  </div>
                 </li>
               </ul>
             </section>
@@ -126,7 +130,7 @@
                         <span>{{ chat.name }}</span>
                         <div class="action-buttons">
                           <button @click="selectChat(chat)">Open</button>
-                          <button @click="leaveChat(chat.channel)">Leave</button>
+                          <button class="leave-button" @click="leaveChat(chat.channel)">Leave</button>
                         </div>
                       </li>
                     <li v-if="!profile.myChats.length" class="empty-message">
@@ -162,7 +166,11 @@
                   <div class="chat-header">
                     <button type="button" @click="currentChat = null">&larr; Back</button>
                     <h2>Chat: {{ selectedChatName }}</h2>
-                    <button @click="rename" v-if="!renameMode">Rename</button>
+                    <div class="chat-header-actions">
+                      <join-button :joined="chatMembers[currentChat]?.includes(profile.username)" @join="addSelfToChat"></join-button>
+                      <button v-if="chatMembers[currentChat]?.includes(profile.username)" class="leave-button" @click="leaveChat(currentChat)">Leave Group</button>
+                      <button @click="rename" v-if="!renameMode">Rename</button>
+                    </div>
                   </div>
           
                   <form v-if="renameMode" @submit.prevent="submitRename($graffitiSession.value)" class="rename-form">
