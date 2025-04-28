@@ -30,9 +30,21 @@
         <button @click="$graffiti.logout($graffitiSession.value)" class="logout-button">
           Log Out
         </button>
+
+        <graffiti-discover
+          :channels="[ $graffitiSession.value.actor ]"
+          :schema="{}"
+          v-slot="{ objects, isInitialPolling }"
+        >
+          <profile-loader
+            v-if="!isInitialPolling && objects.length"
+            :data="objects[objects.length - 1].value"
+            @loaded="initProfile"
+          />
+        </graffiti-discover>
   
         <!-- Homepage -->
-        <div v-if="bottomNavActive === 'home'">
+        <div v-if="!isInitialPolling && bottomNavActive === 'home'">
           <header>
             <h1>Intern Connect</h1>
             <nav class="tab-bar">
@@ -44,69 +56,95 @@
   
           <main class="container">
             <!-- Teams Tab -->
-            <section v-if="activeTab === 'Teams'">
-              <h2>My Teams</h2>
-              <input type="text" v-model="searchTeams" placeholder="Search teams…" />
-              <ul>
-                <li v-for="team in teams.filter(t => profile.myTeams.includes(t.name)).filter(t => t.name.toLowerCase().includes(searchTeams.toLowerCase()))" :key="team.name">
-                  <span>{{ team.name }}</span>
-                  <div class="action-buttons">
-                    <button @click="selectChat({ name: team.name, channel: team.name })">Chat</button>
-                    <button class="leave-button" @click="leaveTeam(team)">Leave</button>
-                  </div>
-                </li>
-                <li v-if="!profile.myTeams.length" class="empty-message">You haven't joined any teams yet.</li>
-              </ul>
-  
-              <h3>Other Teams</h3>
-              <ul>
-                <li v-for="team in teams.filter(t => !profile.myTeams.includes(t.name) && t.name.toLowerCase().includes(searchTeams.toLowerCase()))" :key="team.name">
-                  <span>{{ team.name }}</span>
-                  <div class="action-buttons">
-                    <button @click="selectChat({ name: team.name, channel: team.name }, false)"> Chat</button>
-                    <join-button :joined="profile.myTeams.includes(team.name)" @join="joinTeam(team)"/>
-                  </div>
-                </li>
-              </ul>
-            </section>
-  
-            <!-- Interests Tab -->
-            <section v-else-if="activeTab === 'Interests'">
-              <h2>My Interests</h2>
-              <input type="text" v-model="searchInterests" placeholder="Search interests…" />
-              <ul>
-                <li v-for="interest in interests.filter(i => profile.myInterests.includes(i.name)).filter(i => i.name.toLowerCase().includes(searchInterests.toLowerCase()))" :key="interest.name">
-                  <span>{{ interest.name }}</span>
-                  <div class="action-buttons">
-                    <button @click="selectChat({ name: interest.name, channel: interest.name })">Chat</button>
-                    <button class="leave-button" @click="leaveInterest(interest)">Leave</button>
-                  </div>
-                </li>
-                <li v-if="!profile.myInterests.length" class="empty-message">You haven't joined any interests yet.</li>
-              </ul>
-  
-              <h3>Other Interests</h3>
-              <ul>
-                <li v-for="interest in interests.filter(i => !profile.myInterests.includes(i.name) && i.name.toLowerCase().includes(searchInterests.toLowerCase()))" :key="interest.name">
-                  <span>{{ interest.name }}</span>
-                  <div class="action-buttons">
-                    <button @click="selectChat({ name: interest.name, channel: interest.name }, false)">Chat</button>
-                    <join-button :joined="profile.myInterests.includes(interest.name)"  @join="joinInterest(interest)"/>
-                  </div>
-                </li>
-              </ul>
-            </section>
-  
-            <!-- Events Tab -->
-            <section v-else-if="activeTab === 'Events'">
-              <h2>Events</h2>
-              <p class="empty-message">Events content will go here.</p>
-            </section>
+              <section v-if="activeTab === 'Teams'">
+                <h2>My Teams</h2>
+                <input type="text" v-model="searchTeams" placeholder="Search teams…" />
+                <ul>
+                  <li
+                    v-for="team in teams
+                      .filter(t => profileData.teams.includes(t.name))
+                      .filter(t => t.name.toLowerCase().includes(searchTeams.toLowerCase()))"
+                    :key="team.name"
+                  >
+                    <span>{{ team.name }}</span>
+                    <div class="action-buttons">
+                      <button @click="selectChat({ name: team.name, channel: team.name })">
+                        Chat
+                      </button>
+                      <button class="leave-button" @click="leaveTeam(team)">
+                        Leave
+                      </button>
+                    </div>
+                  </li>
+                  <li v-if="!profileData.teams.length" class="empty-message">
+                    You haven't joined any teams yet.
+                  </li>
+                </ul>
+
+                <h3>Other Teams</h3>
+                <ul>
+                  <li
+                    v-for="team in teams
+                      .filter(t => !profileData.teams.includes(t.name) &&
+                                  t.name.toLowerCase().includes(searchTeams.toLowerCase()))"
+                    :key="team.name"
+                  >
+                    <span>{{ team.name }}</span>
+                    <div class="action-buttons">
+                      <button
+                        @click="selectChat({ name: team.name, channel: team.name }, false)"
+                      >
+                        Chat
+                      </button>
+                      <join-button
+                        :joined="profileData.teams.includes(team.name)"
+                        @join="joinTeam(team)"
+                      />
+                    </div>
+                  </li>
+                </ul>
+              </section>
+
+
+              <section v-else-if="activeTab === 'Interests'">
+                <h2>My Interests</h2>
+                <input type="text" v-model="searchInterests" placeholder="Search interests…" />
+                <ul>
+                  <li v-for="interest in interests.filter(i => profileData.interests.includes(i.name)).filter(i => i.name.toLowerCase().includes(searchInterests.toLowerCase()))" :key="interest.name">
+                    <span>{{ interest.name }}</span>
+                    <div class="action-buttons">
+                      <button @click="selectChat({ name: interest.name, channel: interest.name })">Chat</button>
+                      <button class="leave-button" @click="leaveInterest(interest)">Leave</button>
+                    </div>
+                  </li>
+                  <li v-if="!profileData.interests.length" class="empty-message">You haven't joined any interests yet.</li>
+                </ul>
+    
+                <h3>Other Interests</h3>
+                <ul>
+                  <li v-for="interest in interests.filter(i => !profileData.interests.includes(i.name) && i.name.toLowerCase().includes(searchInterests.toLowerCase()))" :key="interest.name">
+                    <span>{{ interest.name }}</span>
+                    <div class="action-buttons">
+                      <button @click="selectChat({ name: interest.name, channel: interest.name }, false)">Chat</button>
+                      <join-button :joined="profileData.interests.includes(interest.name)"  @join="joinInterest(interest)"/>
+                    </div>
+                  </li>
+                </ul>
+              </section>
+    
+              <!-- Events Tab -->
+              <section v-else-if="activeTab === 'Events'">
+                <h2>Events</h2>
+                <p class="empty-message">Events content will go here.</p>
+              </section>
           </main>
+        </div>
+        <div v-else-if="isInitialPolling && bottomNavActive === 'home'" class="loading-message">
+          Loading your profile…
         </div>
   
         <!-- Chat View -->
-        <div v-else-if="bottomNavActive === 'chats'">
+        <div v-if="bottomNavActive === 'chats'">
             <header>
               <h1>Intern Connect</h1>
             </header>
@@ -126,14 +164,14 @@
                 <section>
                   <h2>My Chats</h2>
                   <ul>
-                    <li v-for="chat in profile.myChats" :key="chat.channel">
+                    <li v-for="chat in profileData.chats" :key="chat.channel">
                         <span>{{ chat.name }}</span>
                         <div class="action-buttons">
                           <button @click="selectChat(chat)">Open</button>
                           <button class="leave-button" @click="leaveChat(chat.channel)">Leave</button>
                         </div>
                       </li>
-                    <li v-if="!profile.myChats.length" class="empty-message">
+                    <li v-if="!profileData.chats.length" class="empty-message">
                       You haven't joined any chats yet.
                     </li>
                   </ul>
@@ -151,7 +189,7 @@
                       <li v-for="chat in mergedChats(listingObjs)" :key="chat.channel">
                         <span>{{ chat.name }}</span>
                         <button
-                          v-if="!profile.myChats.some(c => c.channel === chat.channel)"
+                          v-if="!profileData.chats.some(c => c.channel === chat.channel)"
                           @click="selectChat(chat)"
                         >Join</button>
                         <span v-else class="joined-tag">Joined</span>
@@ -167,8 +205,8 @@
                     <button type="button" @click="currentChat = null">&larr; Back</button>
                     <h2>Chat: {{ selectedChatName }}</h2>
                     <div class="chat-header-actions">
-                      <join-button :joined="chatMembers[currentChat]?.includes(profile.username)" @join="addSelfToChat"></join-button>
-                      <button v-if="chatMembers[currentChat]?.includes(profile.username)" class="leave-button" @click="leaveChat(currentChat)">Leave Group</button>
+                      <join-button :joined="chatMembers[currentChat]?.includes(profileData.name)" @join="addSelfToChat"></join-button>
+                      <button v-if="chatMembers[currentChat]?.includes(profileData.name)" class="leave-button" @click="leaveChat(currentChat)">Leave Group</button>
                       <button @click="rename" v-if="!renameMode">Rename</button>
                     </div>
                   </div>
@@ -230,9 +268,9 @@
                     <ul class="member-list">
                       <li v-for="member in chatMembers[currentChat] || []" :key="member">
                         <span class="member-name">{{ member }}</span>
-                        <span v-if="member === profile.username" class="you-tag">(you)</span>
+                        <span v-if="member === profileData.name" class="you-tag">(you)</span>
                         <button 
-                          v-if="member !== profile.username" 
+                          v-if="member !== profileData.name" 
                           type="button" 
                           @click="removeMember(member)" 
                           class="remove-button"
@@ -248,32 +286,39 @@
         </div>
   
         <!-- Profile View -->
-        <div v-else-if="bottomNavActive === 'profile'">
+        <div v-if="bottomNavActive === 'profile'">
           <header>
             <h1>Intern Connect</h1>
           </header>
-          
           <main class="container">
             <section class="profile-section">
-              <h2>Profile: {{ profile.username }}</h2>
-              
-              <div class="profile-info">
-                <div class="profile-teams">
-                  <h3>My Teams</h3>
-                  <ul>
-                    <li v-for="team in profile.myTeams" :key="team">{{ team }}</li>
-                    <li v-if="!profile.myTeams.length" class="empty-message">You haven't joined any teams yet.</li>
-                  </ul>
-                </div>
-                
-                <div class="profile-interests">
-                  <h3>My Interests</h3>
-                  <ul>
-                    <li v-for="intr in profile.myInterests" :key="intr">{{ intr }}</li>
-                    <li v-if="!profile.myInterests.length" class="empty-message">You haven't joined any interests yet.</li>
-                  </ul>
-                </div>
-              </div>
+              <h2>Your profile</h2>
+              <graffiti-discover
+                :channels="[ $graffitiSession.value.actor ]"
+                :schema="{
+                  properties:{
+                    value:{
+                      required:['name','age','chats'],
+                      properties:{
+                        name:    {type:'string'},
+                        age:     {type:'number'},
+                        chats:   {type:'array', items:{type:'string'}},
+                        interests:{ type:'array', items:{type:'string'} },
+                        teams:   {type:'array', items:{type:'string'}}
+                      }
+                    }
+                  }
+                }"
+                v-slot="{ objects, isInitialPolling }"
+              >
+                <profile-loader
+                  v-if="!isInitialPolling && objects.length"
+                  :data="objects[objects.length - 1].value"
+                  @loaded="initProfile"
+                />
+              </graffiti-discover>
+              <profile-form v-model="profileData" @save="saveProfile"/>
+              <profile-card v-if="profileData.name || profileData.age" :profile="profileData"/>
             </section>
           </main>
         </div>

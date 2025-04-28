@@ -19,6 +19,115 @@ const JoinButton = {
   `
 };
 
+const ProfileCard = {
+  name: 'ProfileCard',
+  props: {
+    profile: { type: Object, required: true }
+  },
+  template: `
+    <div class="profile-card">
+      <h3 class="profile-card__header">
+        {{ profile.name }}<span v-if="profile.age">, {{ profile.age }}</span>
+        <small v-if="profile.college">— {{ profile.college }}</small>
+      </h3>
+      <p>
+        <strong>Interests:</strong>
+        <span v-if="profile.interests.length === 0">None</span>
+        <span
+          v-for="item in profile.interests"
+          :key="item"
+          class="profile-card__tag"
+        >{{ item }}</span>
+      </p>
+      <p>
+        <strong>Teams:</strong>
+        <span v-if="profile.teams.length === 0">None</span>
+        <span
+          v-for="team in profile.teams"
+          :key="team"
+          class="profile-card__tag"
+        >{{ team }}</span>
+      </p>
+      <p>
+        <strong>Chats:</strong>
+        <span v-if="profile.chats.length === 0">None</span>
+        <span
+          v-for="chat in profile.chats"
+          :key="chat"
+          class="profile-card__tag"
+        >{{ chat }}</span>
+      </p>
+    </div>
+  `
+};
+
+const ProfileForm = {
+  name: 'ProfileForm',
+  props: {
+    modelValue: {
+      type: Object,
+      required: true
+    }
+  },
+  emits: ['update:modelValue', 'save'],
+  computed: {
+    form: {
+      get() { return this.modelValue },
+      set(val) { this.$emit('update:modelValue', val) }
+    },
+  },
+  template: `
+    <form class="profile-form" @submit.prevent="$emit('save')">
+      <label>
+        Name
+        <input v-model="form.name" required />
+      </label>
+
+      <label>
+        Age
+        <input type="number" v-model.number="form.age" min="0" required />
+      </label>
+
+      <label>
+        College
+        <input v-model="form.college" />
+      </label>
+
+      <div class="profile-form__readonly">
+        <strong>Interests: </strong>
+        <span v-if="form.interests.length === 0">None</span>
+        <span
+          v-for="item in form.interests"
+          :key="item"
+          class="profile-card__tag"
+        >{{ item }}, </span>
+      </div>
+
+      <!-- read-only teams -->
+      <div class="profile-form__readonly">
+        <strong>Teams: </strong>
+        <span v-if="form.teams.length === 0">None</span>
+        <span
+          v-for="team in form.teams"
+          :key="team"
+          class="profile-card__tag"
+        >{{ team }}, </span>
+      </div>
+
+      <button type="submit">Save Profile</button>
+    </form>
+  `
+};
+
+const ProfileLoader = {
+  name: 'ProfileLoader',
+  props: ['data'],
+  mounted() {
+    this.$emit('loaded', this.data);
+  },
+  render() { return null; }
+};
+
 createApp({
   
   data() {
@@ -69,25 +178,37 @@ createApp({
       searchEvents: "",
 
       teams: [
-        { name: "International ETFs", members: ["alexandra","john","maría"], tags: ["Trading","ESG","Emerging"] },
-        { name: "Options",            members: ["alexandra","taylor","jae"],   tags: ["Trading","Spreads","Greeks"] },
-        { name: "Fixed Income",       members: ["alexandra","sam","olivia"], tags: ["Trading","Credit","Bonds"] },
+        { name: "International ETFs", members: [] },
+        { name: "Options", members: []},
+        { name: "Fixed Income", members: []},
+        { name: "Data Science", members: [] },
+        { name: "Blockchain Dev", members: [] },
+        { name: "Product Management", members: [] },
+        { name: "Equity Research", members: [] },
+        { name: "Sales", members: [] },
       ],
       interests: [
-        { name: "Photography", members: ["alexandra"], tags: ["Art","Camera"] },
-        { name: "Running",     members: [],            tags: ["Health","Fitness"] },
-        { name: "Crafting",    members: [],            tags: ["DIY","Artisan"] }
+        { name: "Photography", members: []},
+        { name: "Running", members: []},
+        { name: "Crafting", members: []},
+        { name: "Travel", members: [] },
+        { name: "Chess", members: [] },
+        { name: "Yoga", members: [] },
+        { name: "Cooking", members: [] }
       ],
-  
-      profile: {
-        username: "alexandra",
-        myChats: [],
-        myTeams: ["International ETFs"],
-        myInterests: [ "Photography" ]
+
+      profileData: {
+        name: '',
+        age: null,
+        college: '',
+        interests: [],
+        teams: [],
+        chats: []
       },
 
       chatMembers: {},
       newMember: "",
+
     };
   },
 
@@ -98,7 +219,7 @@ createApp({
   },
 
   components: {
-    JoinButton
+    JoinButton, ProfileCard, ProfileForm, ProfileLoader
   },
 
   methods: {
@@ -125,7 +246,7 @@ createApp({
     },
     
     filterChatsByGroup(groupName) {
-      return this.profile.myChats.filter(chat => 
+      return this.profileData.chats.filter(chat => 
         chat.name === groupName || 
         (Array.isArray(this.chatMembers[chat.channel]) && 
          this.chatMembers[chat.channel].some(member => {
@@ -153,7 +274,7 @@ createApp({
         },
         session,
       );
-      this.profile.myChats.push({
+      this.profileData.chats.push({
         name: this.groupChatName,
         channel: newChannel});
       this.creatingGroup = false;
@@ -167,35 +288,33 @@ createApp({
       this.selectedChatName = chat.name ?? chat.value.object.name;
       this.bottomNavActive = 'chats';
       this.chatMembers[this.currentChat] = Array.isArray(chat.members) ? [...chat.members] : [];
-      if (!this.profile.myChats.some(c => c.channel === this.currentChat)) {
-        this.profile.myChats.push({
+      if (!this.profileData.chats.some(c => c.channel === this.currentChat)) {
+        this.profileData.chats.push({
           name: this.selectedChatName,
           channel: this.currentChat
         });
+        if (join) this.saveProfile();
       }
-      if (join && !this.chatMembers[this.currentChat].includes(this.profile.username)) {
+      if (join && !this.chatMembers[this.currentChat].includes(this.profileData.name)) {
         this.addSelfToChat();
       }
     },
     
     async leaveChat(channelKey) {
-      this.profile.myChats = this.profile.myChats.filter(c => c.channel !== channelKey);
-  
-      if (this.currentChat === channelKey) {
-        this.currentChat = null;
-        this.selectedChatName = "";
-      }
-  
-      let newMembers = (this.chatMembers[channelKey] || [])
-        .filter(u => u !== this.profile.username);
-  
+      this.profileData.chats = this.profileData.chats.filter(c => c.channel !== channelKey);
+      await this.saveProfile();
       await this.$graffiti.put({
         value: {
           describes: channelKey,
-          members: newMembers
+          members: this.chatMembers[channelKey].filter(u=>u!==this.profileData.name)
         },
         channels: ["designftw"]
       }, this.$graffitiSession.value);
+
+      if (this.currentChat === channelKey) {
+        this.currentChat = null;
+        this.selectedChatName = "";
+      }  
     },
 
     // CHAT CUSTOMIZATION
@@ -266,10 +385,14 @@ createApp({
     },
 
     // MEMBER MANAGEMENT
+    initProfile(data) {
+      this.profileData = {...data};
+    },
+
     async addSelfToChat() {
       if (!this.currentChat || !this.$graffitiSession.value) return;
       
-      let newList = [...(this.chatMembers[this.currentChat] || []), this.profile.username].filter((u, i, a) => a.indexOf(u) === i);
+      let newList = [...(this.chatMembers[this.currentChat] || []), this.profileData.name].filter((u, i, a) => a.indexOf(u) === i);
       
       this.chatMembers[this.currentChat] = newList;
       
@@ -280,6 +403,8 @@ createApp({
         },
         channels: ["designftw"]
       }, this.$graffitiSession.value);
+
+      await this.saveProfile();
 
       let teamObj = this.teams.find(t => t.name === this.currentChat);
       if (teamObj) {
@@ -333,7 +458,7 @@ createApp({
     async joinChat(session) {
       let newList = [
         ...(this.chatMembers[this.currentChat] || []),
-        this.profile.username
+        this.profileData.name
       ].filter((u, i, a) => a.indexOf(u) === i);
   
       await this.$graffiti.put({
@@ -352,51 +477,64 @@ createApp({
       this.chatMembers[channel] = this.chatMembers[channel] || []
     },
 
+    async saveProfile() {
+      await this.$graffiti.put({
+        value: this.profileData,
+        channels: [ this.$graffitiSession.value.actor ]
+      }, this.$graffitiSession.value);
+    },
+
     // TEAM MANAGEMENT
-    joinTeam(teamObj) {
+    async joinTeam(teamObj) {
       let name = teamObj.name;
-      if (!this.profile.myTeams.includes(name)) {
-        this.profile.myTeams.push(name);
+      if (!this.profileData.teams.includes(name)) {
+        this.profileData.teams.push(name);
+        await this.saveProfile();
+        this.initProfile(this.profileData);
       }
       let idx = this.teams.findIndex(t => t.name === name);
       if (idx !== -1) {
         this.teams[idx].members = this.teams[idx].members || [];
-        if (!this.teams[idx].members.includes(this.profile.username)) {
-          this.teams[idx].members.push(this.profile.username);
+        if (!this.teams[idx].members.includes(this.profileData.name)) {
+          this.teams[idx].members.push(this.profileData.name);
         }
       }
     },
 
-    leaveTeam(teamObj) {
+    async leaveTeam(teamObj) {
       let name = teamObj.name;
-      this.profile.myTeams = this.profile.myTeams.filter(t => t !== name);
+      this.profileData.teams = this.profileData.teams.filter(t => t !== name);
+      await this.saveProfile();
       let idx = this.teams.findIndex(t => t.name === name);
       if (idx !== -1 && Array.isArray(this.teams[idx].members)) {
-        this.teams[idx].members = this.teams[idx].members.filter(m => m !== this.profile.username);
+        this.teams[idx].members = this.teams[idx].members.filter(m => m !== this.profileData.name);
       }
     },
 
     // INTEREST MANAGEMENT
-    joinInterest(interestObj) {
+    async joinInterest(interestObj) {
       let name = interestObj.name;
-      if (!this.profile.myInterests.includes(name)) {
-        this.profile.myInterests.push(name);
+      if (!this.profileData.interests.includes(name)) {
+        this.profileData.interests.push(name);
+        await this.saveProfile();
+        this.initProfile(this.profileData);
       }
       let idx = this.interests.findIndex(i => i.name === name);
       if (idx !== -1) {
         this.interests[idx].members = this.interests[idx].members || [];
-        if (!this.interests[idx].members.includes(this.profile.username)) {
-          this.interests[idx].members.push(this.profile.username);
+        if (!this.interests[idx].members.includes(this.profileData.name)) {
+          this.interests[idx].members.push(this.profileData.name);
         }
       }
     },
 
-    leaveInterest(interestObj) {
+    async leaveInterest(interestObj) {
       let name = interestObj.name;
-      this.profile.myInterests = this.profile.myInterests.filter(i => i !== name);
+      this.profileData.interests = this.profileData.interests.filter(i => i !== name);
+      await this.saveProfile();
       let idx = this.interests.findIndex(i => i.name === name);
       if (idx !== -1 && Array.isArray(this.interests[idx].members)) {
-        this.interests[idx].members = this.interests[idx].members.filter(m => m !== this.profile.username);
+        this.interests[idx].members = this.interests[idx].members.filter(m => m !== this.profileData.name);
       }
     },
   },
