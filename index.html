@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Intern Connect</title>
+  <script type="importmap">
+    {
+      "imports": {
+        "vue": "https://cdn.jsdelivr.net/npm/vue@3.5.13/dist/vue.esm-browser.js",
+        "@graffiti-garden/implementation-local": "https://cdn.jsdelivr.net/npm/@graffiti-garden/implementation-local@0.6.4/dist/browser/index.js",
+        "@graffiti-garden/implementation-remote": "https://cdn.jsdelivr.net/npm/@graffiti-garden/implementation-remote@0.6.2/dist/browser/index.js",
+        "@graffiti-garden/wrapper-vue": "https://cdn.jsdelivr.net/npm/@graffiti-garden/wrapper-vue@0.7.2/dist/browser/plugin.mjs"
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+    <div id="app">
+      <!-- Login area when not logged in -->
+      <div v-if="!$graffitiSession.value" class="login-container">
+        <h1>Intern Connect</h1>
+        <p>Connect with other interns, join teams, and chat with people who share your interests!</p>
+        <button @click="$graffiti.login()">Log In</button>
+      </div>
+      
+      <!-- Main app when logged in -->
+      <template v-else>
+        <button @click="$graffiti.logout($graffitiSession.value)" class="logout-button">
+          Log Out
+        </button>
+  
+        <!-- Homepage -->
+        <div v-if="bottomNavActive === 'home'">
+          <header>
+            <h1>Intern Connect</h1>
+            <nav class="tab-bar">
+              <button :class="{ active: activeTab === 'Teams' }" @click="activeTab = 'Teams'">Teams</button>
+              <button :class="{ active: activeTab === 'Interests' }" @click="activeTab = 'Interests'">Interests</button>
+              <button :class="{ active: activeTab === 'Events' }" @click="activeTab = 'Events'">Events</button>
+            </nav>
+          </header>
+  
+          <main class="container">
+            <!-- Teams Tab -->
+            <section v-if="activeTab === 'Teams'">
+              <h2>My Teams</h2>
+              <input type="text" v-model="searchTeams" placeholder="Search teams…" />
+              <ul>
+                <li v-for="team in teams.filter(t => profile.myTeams.includes(t.name)).filter(t => t.name.toLowerCase().includes(searchTeams.toLowerCase()))" :key="team.name">
+                  <span>{{ team.name }}</span>
+                  <div class="action-buttons">
+                    <button @click="selectChat({ name: team.name, channel: team.name })">Chat</button>
+                    <button @click="leaveTeam(team)">Leave</button>
+                  </div>
+                </li>
+                <li v-if="!profile.myTeams.length" class="empty-message">You haven't joined any teams yet.</li>
+              </ul>
+  
+              <h3>All Teams</h3>
+              <ul>
+                <li v-for="team in teams.filter(t => t.name.toLowerCase().includes(searchTeams.toLowerCase()))" :key="team.name">
+                  <span>{{ team.name }}</span>
+                  <button v-if="!profile.myTeams.includes(team.name)" @click="joinTeam(team)">Join</button>
+                  <span v-else class="joined-tag">Joined</span>
+                </li>
+              </ul>
+            </section>
+  
+            <!-- Interests Tab -->
+            <section v-else-if="activeTab === 'Interests'">
+              <h2>My Interests</h2>
+              <input type="text" v-model="searchInterests" placeholder="Search interests…" />
+              <ul>
+                <li v-for="interest in interests.filter(i => profile.myInterests.includes(i.name)).filter(i => i.name.toLowerCase().includes(searchInterests.toLowerCase()))" :key="interest.name">
+                  <span>{{ interest.name }}</span>
+                  <div class="action-buttons">
+                    <button @click="selectChat({ name: interest.name, channel: interest.name })">Chat</button>
+                    <button @click="leaveInterest(interest)">Leave</button>
+                  </div>
+                </li>
+                <li v-if="!profile.myInterests.length" class="empty-message">You haven't joined any interests yet.</li>
+              </ul>
+  
+              <h3>All Interests</h3>
+              <ul>
+                <li v-for="interest in interests.filter(i => i.name.toLowerCase().includes(searchInterests.toLowerCase()))" :key="interest.name">
+                  <span>{{ interest.name }}</span>
+                  <button v-if="!profile.myInterests.includes(interest.name)" @click="joinInterest(interest)">Join</button>
+                  <span v-else class="joined-tag">Joined</span>
+                </li>
+              </ul>
+            </section>
+  
+            <!-- Events Tab -->
+            <section v-else-if="activeTab === 'Events'">
+              <h2>Events</h2>
+              <p class="empty-message">Events content will go here.</p>
+            </section>
+          </main>
+        </div>
+  
+        <!-- Chat View -->
+        <div v-else-if="bottomNavActive === 'chats'">
+            <header>
+              <h1>Intern Connect</h1>
+            </header>
+          
+            <main class="container">
+              <div v-if="!currentChat">
+                <div class="create-group-form">
+                  <h2>Create Group Chat</h2>
+                  <form @submit.prevent="createGroupChat($graffitiSession.value)">
+                    <input type="text" v-model="groupChatName" placeholder="New group chat name" v-focus />
+                    <button type="submit" :disabled="creatingGroup || !groupChatName">
+                      {{ creatingGroup ? 'Creating…' : 'Create Chat' }}
+                    </button>
+                  </form>
+                </div>
+          
+                <section>
+                  <h2>My Chats</h2>
+                  <ul>
+                    <li v-for="chat in profile.myChats" :key="chat.channel">
+                        <span>{{ chat.name }}</span>
+                        <div class="action-buttons">
+                          <button @click="selectChat(chat)">Open</button>
+                          <button @click="leaveChat(chat.channel)">Leave</button>
+                        </div>
+                      </li>
+                    <li v-if="!profile.myChats.length" class="empty-message">
+                      You haven't joined any chats yet.
+                    </li>
+                  </ul>
+                </section>
+          
+                <section>
+                  <h2>All Chats</h2>
+                  <graffiti-discover
+                    v-slot="{ objects: listingObjs, isInitialPolling }"
+                    :channels="channels"
+                    :schema="{}"
+                  >
+                    <ul>
+                      <li v-if="isInitialPolling" class="loading-message">Loading chats…</li>
+                      <li v-for="chat in mergedChats(listingObjs)" :key="chat.channel">
+                        <span>{{ chat.name }}</span>
+                        <button
+                          v-if="!profile.myChats.some(c => c.channel === chat.channel)"
+                          @click="selectChat(chat)"
+                        >Join</button>
+                        <span v-else class="joined-tag">Joined</span>
+                      </li>
+                    </ul>
+                  </graffiti-discover>
+                </section>
+              </div>
+          
+              <div v-else>
+                <div class="chat-window">
+                  <div class="chat-header">
+                    <button type="button" @click="currentChat = null">&larr; Back</button>
+                    <h2>Chat: {{ selectedChatName }}</h2>
+                    <button @click="rename" v-if="!renameMode">Rename</button>
+                  </div>
+          
+                  <form v-if="renameMode" @submit.prevent="submitRename($graffitiSession.value)" class="rename-form">
+                    <input type="text" v-model="renameGroupName" v-focus required />
+                    <button type="submit">Save</button>
+                    <button type="button" @click="renameMode = false">Cancel</button>
+                  </form>
+          
+                  <div class="chat-body">
+                    <graffiti-discover
+                      v-slot="{ objects: messageObjects, isInitialPolling }"
+                      :channels="messageChannels"
+                      :schema="{ properties:{ value:{ required:['content','published'], properties:{ content:{type:'string'}, published:{type:'number'} } } } }"
+                    >
+                      <ul class="chat-messages">
+                        <li v-if="isInitialPolling" class="loading-message">Loading messages…</li>
+                        <li
+                        v-for="msg in messageObjects.sort((a,b) => b.value.published - a.value.published)"
+                        :key="msg.url"
+                        :class="msg.actor === $graffitiSession.value.actor ? 'my-message' : 'other-message'"
+                        >
+                        <div class="message-content">
+                            <div class="message-header">
+                            <strong>{{ msg.actor }}</strong>
+                            <span v-if="msg.actor === $graffitiSession.value.actor" class="you-tag">(you)</span>
+                            </div>
+                            <div class="message-body">{{ msg.value.content }}</div>
+                        </div>
+                        <div class="message-actions" v-if="msg.actor === $graffitiSession.value.actor">
+                            <button @click="edit(msg)">Edit</button>
+                            <button @click="deleteMessage(msg, $graffitiSession.value)">Delete</button>
+                        </div>
+                        </li>
+
+                      </ul>
+                    </graffiti-discover>
+                  </div>
+          
+                  <div class="chat-input-area">
+                    <form @submit.prevent="handleMessage($graffitiSession.value)">
+                      <fieldset :disabled="sending || renameMode">
+                        <input ref="messageInput" type="text" v-model="myMessage" placeholder="Type a message…" v-focus />
+                        <button type="submit">{{ editingMessage ? 'Update' : (sending ? 'Sending…' : 'Send') }}</button>
+                      </fieldset>
+                    </form>
+                  </div>
+                </div>
+          
+                <div class="chat-members">
+                    <h3>Members ({{ chatMembers[currentChat]?.length || 0 }})</h3>
+                    <div class="member-search">
+                      <form @submit.prevent="addMember">
+                        <input v-model="newMember" placeholder="Add user by name…" required />
+                        <button type="submit" class="add-button">Add</button>
+                      </form>
+                    </div>
+                    <ul class="member-list">
+                      <li v-for="member in chatMembers[currentChat] || []" :key="member">
+                        <span class="member-name">{{ member }}</span>
+                        <span v-if="member === profile.username" class="you-tag">(you)</span>
+                        <button 
+                          v-if="member !== profile.username" 
+                          type="button" 
+                          @click="removeMember(member)" 
+                          class="remove-button"
+                          title="Remove from chat">×</button>
+                      </li>
+                      <li v-if="(chatMembers[currentChat] || []).length === 0" class="empty-message">
+                        No one has been added yet.
+                      </li>
+                    </ul>
+                  </div>
+              </div>
+            </main>
+        </div>
+  
+        <!-- Profile View -->
+        <div v-else-if="bottomNavActive === 'profile'">
+          <header>
+            <h1>Intern Connect</h1>
+          </header>
+          
+          <main class="container">
+            <section class="profile-section">
+              <h2>Profile: {{ profile.username }}</h2>
+              
+              <div class="profile-info">
+                <div class="profile-teams">
+                  <h3>My Teams</h3>
+                  <ul>
+                    <li v-for="team in profile.myTeams" :key="team">{{ team }}</li>
+                    <li v-if="!profile.myTeams.length" class="empty-message">You haven't joined any teams yet.</li>
+                  </ul>
+                </div>
+                
+                <div class="profile-interests">
+                  <h3>My Interests</h3>
+                  <ul>
+                    <li v-for="intr in profile.myInterests" :key="intr">{{ intr }}</li>
+                    <li v-if="!profile.myInterests.length" class="empty-message">You haven't joined any interests yet.</li>
+                  </ul>
+                </div>
+              </div>
+            </section>
+          </main>
+        </div>
+  
+        <!-- Bottom Navigation -->
+        <footer class="bottom-nav">
+          <button :class="{ active: bottomNavActive === 'home' }" @click="bottomNavActive = 'home'">Home</button>
+          <button :class="{ active: bottomNavActive === 'chats' }" @click="bottomNavActive = 'chats'">Chats</button>
+          <button :class="{ active: bottomNavActive === 'profile' }" @click="bottomNavActive = 'profile'">Profile</button>
+        </footer>
+      </template>
+    </div>
+    <script src="index.js" type="module"></script>
+  </body>
+  
+</html>
