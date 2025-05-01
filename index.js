@@ -477,12 +477,29 @@ createApp({
       this.chatMembers[channel] = this.chatMembers[channel] || []
     },
 
+    // commented from studio
+    // async saveProfile() {
+    //   await this.$graffiti.put({
+    //     value: this.profileData,
+    //     channels: [ this.$graffitiSession.value.actor ]
+    //   }, this.$graffitiSession.value);
+    // },
+
     async saveProfile() {
-      await this.$graffiti.put({
-        value: this.profileData,
-        channels: [ this.$graffitiSession.value.actor ]
-      }, this.$graffitiSession.value);
+      await this.$graffiti.put(
+        {
+          value: {
+            ...this.profileData,
+            generator: "https://alexsanc123.github.io/intern-connect/",
+            describes: this.$graffitiSession.value.actor
+          },
+          channels: [
+            this.$graffitiSession.value.actor,
+            "designftw-2025-studio1"
+          ]
+        }, this.$graffitiSession.value);
     },
+    
 
     // TEAM MANAGEMENT
     async joinTeam(teamObj) {
@@ -540,8 +557,8 @@ createApp({
   },
 })
   .use(GraffitiPlugin, {
-    graffiti: new GraffitiLocal(),
-    // graffiti: new GraffitiRemote(),
+    // graffiti: new GraffitiLocal(),
+    graffiti: new GraffitiRemote(),
   })
   .mount("#app");
 
