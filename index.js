@@ -215,6 +215,15 @@ createApp({
       chatMembers: {},
       newMember: "",
 
+      addingEvent: false,
+      newEvent: {
+        name: '',
+        location: '',
+        date: '',
+        time: '',
+        team: [],
+        interests: []
+      },
     };
   },
 
@@ -570,6 +579,58 @@ createApp({
       name: member.displayName || member.username,
       channel: member.id
       })
+    },
+
+    openEventForm() {
+      this.addingEvent = true;
+      if (this.currentTeam) {
+        this.newEvent.team =  [ this.currentTeam.name ];
+        this.newEvent.interests = [];
+      }
+      else if (this.currentInterest) {
+        this.newEvent.team = '';
+        this.newEvent.interests = [ this.currentInterest.name ];
+      }
+      else {
+        this.newEvent.team = [];
+        this.newEvent.interests = [];
+      }
+    },
+
+    cancelEventForm() {
+      this.addingEvent = false;
+      this.newEvent = {
+        name: '',
+        location: '',
+        date: '',
+        time: '',
+        team: [],
+        interests: []
+      };
+    },
+
+    async createEvent(session) {
+      const date = new Date(`${this.newEvent.date}T${this.newEvent.time}`);
+      await this.$graffiti.put({
+        value: {
+          name:      this.newEvent.name,
+          location:  this.newEvent.location,
+          datetime:  date.getTime(),
+          team:      this.newEvent.team,
+          interests: this.newEvent.interests
+        },
+        channels: ['events']
+      }, session);
+
+      this.addingEvent = false;
+      this.newEvent = {
+        name: '',
+        location: '',
+        date: '',
+        time: '',
+        team: [],
+        interests: []
+      };
     },
   },
 })

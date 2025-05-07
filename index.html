@@ -186,11 +186,100 @@
                 </div>
               </section>
           
-              <!-- EVENTS (placeholder) -->
+              <!-- EVENTS -->
               <section v-else-if="teamActiveTab === 'Events'">
-                <p class="empty-message">
-                  Events for {{ currentTeam.name }} will go here.
-                </p>
+                <div v-if="!addingEvent">
+                    <graffiti-discover
+                    v-slot="{ objects: eventObjs, isInitialPolling }"
+                    :channels="['events']"
+                    :schema="{
+                      properties:{
+                        value:{
+                          required:['name','datetime','location'],
+                          properties:{
+                            name:      { type:'string' },
+                            location:  { type:'string' },
+                            datetime:  { type:'number' },
+                            team:      { type:'string' },
+                            interests: { type:'array', items:{type:'string'} }
+                          }
+                        }
+                      }
+                    }"
+                  >
+                    <ul class="event-list">
+                      <li v-if="isInitialPolling" class="loading">Loading events…</li>
+                      <li
+                        v-else-if="!eventObjs.filter(e => e.value.team === currentTeam.name).length"
+                        class="empty-message"
+                      >
+                        No upcoming events for {{ currentTeam.name }}.
+                      </li>
+                      <li
+                        v-else
+                        v-for="e in eventObjs
+                          .filter(e => e.value.teams.includes(currentTeam.name))
+                          .sort((a,b)=>a.value.datetime - b.value.datetime)"
+                        :key="e.url"
+                        class="event-card"
+                      >
+                        <span class="event-time">
+                          {{ new Date(e.value.datetime).toLocaleDateString() }},
+                          {{ new Date(e.value.datetime).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) }}
+                        </span>
+                        <strong class="event-name">{{ e.value.name }}</strong>
+                        <em class="event-location">{{ e.value.location }}</em>
+                      </li>
+                    </ul>
+              
+                    <button class="add-event-btn" @click="openEventForm">
+                      Add a New Event
+                    </button>
+                  </graffiti-discover>
+                </div>
+                <div v-else class="event-form-container">
+                  <h2>Add New Event for {{ currentTeam.name }}</h2>
+                  <form @submit.prevent="createEvent($graffitiSession.value)">
+                    <label>
+                      Event Name
+                      <input v-model="newEvent.name" required />
+                    </label>
+                    <label>
+                      Event Location
+                      <input v-model="newEvent.location" />
+                    </label>
+                    <div class="date-time-row">
+                      <label>
+                        Event Date
+                        <input type="date" v-model="newEvent.date" required />
+                      </label>
+                      <label>
+                        Event Time
+                        <input type="time" v-model="newEvent.time" required />
+                      </label>
+                    </div>
+                    <label>
+                      Event Team
+                      <select v-model="newEvent.teams" multiple>
+                        <option v-for="t in teams" :key="t.name" :value="t.name">
+                          {{ t.name }}
+                        </option>
+                      </select>
+                    </label>
+                    <label>
+                      Event Interests
+                      <select v-model="newEvent.interests" multiple>
+                        <option v-for="i in interests" :key="i.name" :value="i.name">
+                          {{ i.name }}
+                        </option>
+                      </select>
+                    </label>
+                    <div class="form-actions">
+                      <button type="submit">Add New Event</button>
+                      <button type="button" @click="cancelEventForm">Cancel</button>
+                    </div>
+                  </form>
+                </div>
               </section>
             </main>
           </div>
@@ -336,11 +425,101 @@
                 </div>
               </section>
           
-              <!-- EVENTS (placeholder) -->
+              <!-- EVENTS -->
               <section v-else-if="interestActiveTab === 'Events'">
-                <p class="empty-message">
-                  Events for {{ currentInterest.name }} will go here.
-                </p>
+                <div v-if="!addingEvent">
+                  <graffiti-discover
+                  v-slot="{ objects: eventObjs, isInitialPolling }"
+                  :channels="['events']"
+                  :schema="{
+                    properties:{
+                      value:{
+                        required:['name','datetime','location'],
+                        properties:{
+                          name:      { type:'string' },
+                          location:  { type:'string' },
+                          datetime:  { type:'number' },
+                          team:      { type:'string' },
+                          interests: { type:'array', items:{type:'string'} }
+                        }
+                      }
+                    }
+                  }"
+                >
+                  <ul class="event-list">
+                    <li v-if="isInitialPolling" class="loading">Loading events…</li>
+                    <li
+                      v-else-if="!eventObjs.filter(e => e.value.interests.includes(currentInterest.name)).length"
+                      class="empty-message"
+                    >
+                      No upcoming events for {{ currentInterest.name }}.
+                    </li>
+                    <li
+                      v-else
+                      v-for="e in eventObjs
+                        .filter(e => e.value.interests.includes(currentInterest.name))
+                        .sort((a,b)=>a.value.datetime - b.value.datetime)"
+                      :key="e.url"
+                      class="event-card"
+                    >
+                      <span class="event-time">
+                        {{ new Date(e.value.datetime).toLocaleDateString() }},
+                        {{ new Date(e.value.datetime).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) }}
+                      </span>
+                      <strong class="event-name">{{ e.value.name }}</strong>
+                      <em class="event-location">{{ e.value.location }}</em>
+                    </li>
+                  </ul>
+            
+                  <button class="add-event-btn" @click="openEventForm">
+                    Add a New Event
+                  </button>
+                </graffiti-discover>
+                </div>
+                <div v-else>
+                  <h2>Add New Event for {{ currentInterest.name }}</h2>
+                  <form @submit.prevent="createEvent($graffitiSession.value)">
+                    <label>
+                      Event Name
+                      <input v-model="newEvent.name" required />
+                    </label>
+                    <label>
+                      Event Location
+                      <input v-model="newEvent.location" />
+                    </label>
+                    <div class="date-time-row">
+                      <label>
+                        Event Date
+                        <input type="date" v-model="newEvent.date" required />
+                      </label>
+                      <label>
+                        Event Time
+                        <input type="time" v-model="newEvent.time" required />
+                      </label>
+                    </div>
+                    <label>
+                      Event Team
+                      <select v-model="newEvent.teams" multiple>
+                        <option v-for="t in teams" :key="t.name" :value="t.name">
+                          {{ t.name }}
+                        </option>
+                      </select>
+                    </label>
+                    <label>
+                      Event Interests
+                      <select v-model="newEvent.interests" multiple>
+                        <option v-for="i in interests" :key="i.name" :value="i.name">
+                          {{ i.name }}
+                        </option>
+                      </select>
+                    </label>
+                    <div class="form-actions">
+                      <button type="submit">Add New Event</button>
+                      <button type="button" @click="cancelEventForm">Cancel</button>
+                    </div>
+                  </form>
+                </div>
+                
               </section>
             </main>
           </div>
@@ -437,9 +616,100 @@
       
                 <!-- Events Tab -->
                 <section v-else-if="activeTab === 'Events'">
-                  <h2>Events</h2>
-                  <p class="empty-message">Events content will go here.</p>
+
+                  <div v-if="!addingEvent">
+                    <h2>Upcoming Events</h2>
+                    <graffiti-discover
+                      v-slot="{ objects: eventObjs, isInitialPolling }"
+                      :channels="['events']"
+                      :schema="{
+                        properties:{
+                          value:{
+                            required:['name','datetime','location'],
+                            properties:{
+                              name:      { type:'string' },
+                              location:  { type:'string' },
+                              datetime:  { type:'number' },
+                              team:      { type:'string' },
+                              interests: { type:'array', items:{ type:'string' } }
+                            }
+                          }
+                        }
+                      }"
+                    >
+                      <ul class="event-list">
+                        <li v-if="isInitialPolling" class="loading">Loading events…</li>
+                        <li
+                          v-else-if="!eventObjs.length"
+                          class="empty-message"
+                        >
+                          No upcoming events.
+                        </li>
+                        <li
+                          v-else
+                          v-for="e in eventObjs.sort((a,b) => a.value.datetime - b.value.datetime)"
+                          :key="e.url"
+                          class="event-card"
+                        >
+                          <span class="event-time">
+                            {{ new Date(e.value.datetime).toLocaleDateString() }}
+                            , {{ new Date(e.value.datetime).toLocaleTimeString([], { hour: '2-digit', minute:'2-digit' }) }}
+                          </span>
+                          <strong class="event-name">{{ e.value.name }}</strong>
+                          <em class="event-location">{{ e.value.location }}</em>
+                        </li>
+                      </ul>
+                      <button class="add-event-btn" @click="openEventForm">
+                        Add a New Event
+                      </button>
+                    </graffiti-discover>
+                  </div>
+                
+                  <div v-else class="event-form-container">
+                    <h2>Add New Event</h2>
+                    <form @submit.prevent="createEvent($graffitiSession.value)">
+                      <label>
+                        Event Name
+                        <input v-model="newEvent.name" required />
+                      </label>
+                      <label>
+                        Event Location
+                        <input v-model="newEvent.location" />
+                      </label>
+                      <div class="date-time-row">
+                        <label>
+                          Event Date
+                          <input type="date" v-model="newEvent.date" required />
+                        </label>
+                        <label>
+                          Event Time
+                          <input type="time" v-model="newEvent.time" required />
+                        </label>
+                      </div>
+                      <label>
+                        Event Team
+                        <select v-model="newEvent.teams" multiple>
+                          <option v-for="t in teams" :key="t.name" :value="t.name">
+                            {{ t.name }}
+                          </option>
+                        </select>
+                      </label>
+                      <label>
+                        Event Interests
+                        <select v-model="newEvent.interests" multiple>
+                          <option v-for="i in interests" :key="i.name" :value="i.name">
+                            {{ i.name }}
+                          </option>
+                        </select>
+                      </label>
+                      <div class="form-actions">
+                        <button type="submit">Add New Event</button>
+                        <button type="button" @click="cancelEventForm">Cancel</button>
+                      </div>
+                    </form>
+                  </div>
                 </section>
+                
             </main>
           </div>
         </div>
