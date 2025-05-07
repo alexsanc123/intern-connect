@@ -166,6 +166,9 @@ createApp({
       currentChat: null,
       selectedChatName: "",
 
+      currentTeam: null,
+      teamActiveTab: 'Members',
+
       editingMessage: null,
 
       renameMode: false,
@@ -178,23 +181,23 @@ createApp({
       searchEvents: "",
 
       teams: [
-        { name: "International ETFs", members: [] },
-        { name: "Options", members: []},
-        { name: "Fixed Income", members: []},
-        { name: "Data Science", members: [] },
-        { name: "Blockchain Dev", members: [] },
-        { name: "Product Management", members: [] },
-        { name: "Equity Research", members: [] },
-        { name: "Sales", members: [] },
+        { name: "International ETFs", membersCount: 0 },
+        { name: "Options", membersCount: 0},
+        { name: "Fixed Income", membersCount: 0},
+        { name: "Data Science", membersCount: 0 },
+        { name: "Blockchain Dev", membersCount: 0 },
+        { name: "Product Management", membersCount: 0 },
+        { name: "Equity Research", membersCount: 0 },
+        { name: "Sales", membersCount: 0 },
       ],
       interests: [
-        { name: "Photography", members: []},
-        { name: "Running", members: []},
-        { name: "Crafting", members: []},
-        { name: "Travel", members: [] },
-        { name: "Chess", members: [] },
-        { name: "Yoga", members: [] },
-        { name: "Cooking", members: [] }
+        { name: "Photography", membersCount: 0},
+        { name: "Running", membersCount: 0},
+        { name: "Crafting", membersCount: 0},
+        { name: "Travel", membersCount: 0 },
+        { name: "Chess", membersCount: 0 },
+        { name: "Yoga", membersCount: 0 },
+        { name: "Cooking", membersCount: 0 }
       ],
 
       profileData: {
@@ -214,8 +217,12 @@ createApp({
 
   computed: {
     messageChannels() {
-      return this.currentChat ? [this.currentChat] : [];
+      if (this.currentTeam && this.teamActiveTab === 'Chat') {
+        return [ this.currentTeam.name ];
+      }
+      return this.currentChat ? [ this.currentChat ] : [];
     }
+
   },
 
   components: {
@@ -245,16 +252,6 @@ createApp({
       return Object.values(map);
     },
     
-    filterChatsByGroup(groupName) {
-      return this.profileData.chats.filter(chat => 
-        chat.name === groupName || 
-        (Array.isArray(this.chatMembers[chat.channel]) && 
-         this.chatMembers[chat.channel].some(member => {
-           let teamMember = this.teams.find(t => t.name === groupName)?.members || [];
-           return teamMember.includes(member);
-         }))
-      );
-    },
 
     // CHAT CREATION AND MANAGEMENT
     async createGroupChat(session) {
@@ -478,55 +475,31 @@ createApp({
     },
 
     // commented from studio
-    // async saveProfile() {
-    //   await this.$graffiti.put({
-    //     value: this.profileData,
-    //     channels: [ this.$graffitiSession.value.actor ]
-    //   }, this.$graffitiSession.value);
-    // },
-
     async saveProfile() {
-      await this.$graffiti.put(
-        {
-          value: {
-            ...this.profileData,
-            generator: "https://alexsanc123.github.io/intern-connect/",
-            describes: this.$graffitiSession.value.actor
-          },
-          channels: [
-            this.$graffitiSession.value.actor,
-            "designftw-2025-studio1"
-          ]
-        }, this.$graffitiSession.value);
+      await this.$graffiti.put({
+        value: this.profileData,
+        channels: [ this.$graffitiSession.value.actor ]
+      }, this.$graffitiSession.value);
     },
+
+    // commented from studio
+    // async saveProfile() {
+    //   await this.$graffiti.put(
+    //     {
+    //       value: {
+    //         ...this.profileData,
+    //         generator: "https://alexsanc123.github.io/intern-connect/",
+    //         describes: this.$graffitiSession.value.actor
+    //       },
+    //       channels: [
+    //         this.$graffitiSession.value.actor,
+    //         "designftw-2025-studio1"
+    //       ]
+    //     }, this.$graffitiSession.value);
+    // },
     
 
-    // TEAM MANAGEMENT
-    async joinTeam(teamObj) {
-      let name = teamObj.name;
-      if (!this.profileData.teams.includes(name)) {
-        this.profileData.teams.push(name);
-        await this.saveProfile();
-        this.initProfile(this.profileData);
-      }
-      let idx = this.teams.findIndex(t => t.name === name);
-      if (idx !== -1) {
-        this.teams[idx].members = this.teams[idx].members || [];
-        if (!this.teams[idx].members.includes(this.profileData.name)) {
-          this.teams[idx].members.push(this.profileData.name);
-        }
-      }
-    },
-
-    async leaveTeam(teamObj) {
-      let name = teamObj.name;
-      this.profileData.teams = this.profileData.teams.filter(t => t !== name);
-      await this.saveProfile();
-      let idx = this.teams.findIndex(t => t.name === name);
-      if (idx !== -1 && Array.isArray(this.teams[idx].members)) {
-        this.teams[idx].members = this.teams[idx].members.filter(m => m !== this.profileData.name);
-      }
-    },
+    
 
     // INTEREST MANAGEMENT
     async joinInterest(interestObj) {
@@ -554,11 +527,45 @@ createApp({
         this.interests[idx].members = this.interests[idx].members.filter(m => m !== this.profileData.name);
       }
     },
+
+    // TEAM MANAGEMENT
+    async joinTeam() {
+      let obj = await this.$graffiti.put({
+        value: {
+          userId: this.$graffitiSession.value.actor,
+          displayName: this.$graffitiSession.value.actor
+        },
+        channels: [ this.currentTeam.name ]
+      }, this.$graffitiSession.value);                                
+    },
+
+    async leaveTeam() {
+      if (this.myMembershipUrl) {
+        await this.$graffiti.delete(this.myMembershipUrl, this.$graffitiSession.value);
+      }
+    },
+
+    async openTeam(team, initialTab = 'Members') {
+        this.currentTeam   = team;
+        this.teamActiveTab = initialTab;
+    },
+  
+    async backToTeams() {
+      this.currentTeam = null;
+      this.myMembershipUrl = null;
+    },
+  
+    openChatWithMember(member) {
+      this.selectChat({
+      name: member.displayName || member.username,
+      channel: member.id
+      })
+    },
   },
 })
   .use(GraffitiPlugin, {
-    // graffiti: new GraffitiLocal(),
-    graffiti: new GraffitiRemote(),
+    graffiti: new GraffitiLocal(),
+    // graffiti: new GraffitiRemote(),
   })
   .mount("#app");
 
