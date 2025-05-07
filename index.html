@@ -97,9 +97,9 @@
                     </button>
                     <button
                       v-else
-                      @click="leaveTeam()"
+                      @click="leaveTeam(memberObjs.find(m => m.value.userId === $graffitiSession.value.actor))"
                     >
-                      Leave Team
+                    Remove Team
                     </button>
                   </div>
               
@@ -195,6 +195,156 @@
             </main>
           </div>
 
+          <div v-else-if="currentInterest">
+            <header>
+              <button class="back-button" @click="backToInterests">
+                ← Back
+              </button>
+              <h1>{{ currentInterest.name }}</h1>
+              <nav class="tab-bar">
+                <button
+                  :class="{ active: interestActiveTab === 'Members' }"
+                  @click="interestActiveTab = 'Members'">
+                  Members
+                </button>
+                <button
+                  :class="{ active: interestActiveTab === 'Chat' }"
+                  @click="interestActiveTab = 'Chat'">
+                  Chat
+                </button>
+                <button
+                  :class="{ active: interestActiveTab === 'Events' }"
+                  @click="interestActiveTab = 'Events'">
+                  Events
+                </button>
+              </nav>
+            </header>
+          
+            <main class="container">
+              <!-- MEMBERS LIST -->
+              <section v-if="interestActiveTab === 'Members'">
+                <graffiti-discover
+                  v-slot="{ objects: memberObjs, isInitialPolling }"
+                  :channels="[ currentInterest.name ]"
+                  :schema="{
+                    properties:{
+                      value:{
+                        required:['userId','displayName'],
+                        properties:{
+                          userId:      { type:'string' },
+                          displayName: { type:'string' }
+                        }
+                      }
+                    }
+                  }"
+                >
+                  <div v-if="!isInitialPolling" class="membership-controls">
+                    <button
+                      v-if="!memberObjs.some(m => m.value.userId === $graffitiSession.value.actor)"
+                      @click="joinInterest()"
+                    >
+                      Join Interest
+                    </button>
+                    <button
+                      v-else
+                      @click="leaveInterest(memberObjs.find(m => m.value.userId === $graffitiSession.value.actor))"
+                    >
+                      Remove Interest
+                    </button>
+                  </div>
+              
+                  <!-- MEMBER LIST -->
+                  <ul class="member-list">
+                    <li v-if="isInitialPolling" class="loading">Loading members…</li>
+                    <li v-else-if="!memberObjs.length" class="empty-message">
+                      No members have joined yet.
+                    </li>
+                    <li v-else v-for="m in memberObjs" :key="m.url" class="member-row">
+                      <graffiti-discover
+                        :channels="[ m.value.userId ]"
+                        :schema="{ properties:{ value:{ required:['name'], properties:{ name:{ type:'string' } } } } }"
+                        v-slot="{ objects: userProfiles, isInitialPolling: loadingProf }"
+                      >
+                        <span class="member-name">
+                          {{ loadingProf
+                             ? m.value.displayName
+                             : (userProfiles.length
+                                 ? userProfiles[userProfiles.length-1].value.name
+                                 : m.value.displayName)
+                          }}
+                        </span>
+              
+                        <!-- only show Chat if not me -->
+                        <button
+                          v-if="m.value.userId !== $graffitiSession.value.actor"
+                          @click="openChatWithMember({
+                            id: m.value.userId,
+                            displayName: userProfiles.length
+                              ? userProfiles[userProfiles.length-1].value.name
+                              : m.value.displayName
+                          })"
+                        >
+                          Chat
+                        </button>
+                      </graffiti-discover>
+                    </li>
+                  </ul>
+                </graffiti-discover>
+              </section>
+              
+              <!-- TEAM GROUP CHAT -->
+              <section v-else-if="interestActiveTab === 'Chat'">
+                <div class="chat-window">
+                  <div class="chat-body">
+                    <graffiti-discover
+                      v-slot="{ objects: messageObjects, isInitialPolling }"
+                      :channels="[ currentInterest.name ]"
+                      :schema="{ properties:{ value:{ required:['content','published'], properties:{ content:{type:'string'}, published:{type:'number'} } } } }"
+                    >
+                      <ul class="chat-messages">
+                        <li v-if="isInitialPolling" class="loading-message">Loading messages…</li>
+                        <li
+                        v-for="msg in messageObjects.sort((a,b) => b.value.published - a.value.published)"
+                        :key="msg.url"
+                        :class="msg.actor === $graffitiSession.value.actor ? 'my-message' : 'other-message'"
+                        >
+                        <div class="message-content">
+                            <div class="message-header">
+                            <strong>{{ msg.actor }}</strong>
+                            <span v-if="msg.actor === $graffitiSession.value.actor" class="you-tag">(you)</span>
+                            </div>
+                            <div class="message-body">{{ msg.value.content }}</div>
+                        </div>
+                        <div class="message-actions" v-if="msg.actor === $graffitiSession.value.actor">
+                            <button @click="edit(msg)">Edit</button>
+                            <button @click="deleteMessage(msg, $graffitiSession.value)">Delete</button>
+                        </div>
+                        </li>
+
+                      </ul>
+                    </graffiti-discover>
+                  </div>
+          
+                  <div class="chat-input-area">
+                    <form @submit.prevent="handleMessage($graffitiSession.value)">
+                      <fieldset :disabled="sending">
+                        <input ref="messageInput" type="text" v-model="myMessage" placeholder="Type a message…" v-focus />
+                        <button type="submit">{{ editingMessage ? 'Update' : (sending ? 'Sending…' : 'Send') }}</button>
+                      </fieldset>
+                    </form>
+                  </div>
+                </div>
+              </section>
+          
+              <!-- EVENTS (placeholder) -->
+              <section v-else-if="interestActiveTab === 'Events'">
+                <p class="empty-message">
+                  Events for {{ currentInterest.name }} will go here.
+                </p>
+              </section>
+            </main>
+          </div>
+
           <!-- Main homescreen -->
           <div v-else>
             <header>
@@ -220,7 +370,7 @@
                       @click="openTeam(team, 'Members')"
                       class="team-row"
                     >
-                    <button class="team-link">{{ team.name }}</button>
+                    <span>{{ team.name }}</span>
                       <div class="action-buttons">
                         <button @click="openTeam(team, 'Chat')">
                           Chat
@@ -263,10 +413,10 @@
                   <h2>My Interests</h2>
                   <input type="text" v-model="searchInterests" placeholder="Search interests…" />
                   <ul>
-                    <li v-for="interest in interests.filter(i => profileData.interests.includes(i.name)).filter(i => i.name.toLowerCase().includes(searchInterests.toLowerCase()))" :key="interest.name">
+                    <li v-for="interest in interests.filter(i => profileData.interests.includes(i.name)).filter(i => i.name.toLowerCase().includes(searchInterests.toLowerCase()))" :key="interest.name" @click="openInterest(interest, 'Members')">
                       <span>{{ interest.name }}</span>
                       <div class="action-buttons">
-                        <button @click="selectChat({ name: interest.name, channel: interest.name })">Chat</button>
+                        <button @click="openInterest(interest, 'Chat')">Chat</button>
                         <button class="leave-button" @click="leaveInterest(interest)">Leave</button>
                       </div>
                     </li>
@@ -275,10 +425,10 @@
       
                   <h3>Other Interests</h3>
                   <ul>
-                    <li v-for="interest in interests.filter(i => !profileData.interests.includes(i.name) && i.name.toLowerCase().includes(searchInterests.toLowerCase()))" :key="interest.name">
+                    <li v-for="interest in interests.filter(i => !profileData.interests.includes(i.name) && i.name.toLowerCase().includes(searchInterests.toLowerCase()))" :key="interest.name" @click="openInterest(interest, 'Members')">
                       <span>{{ interest.name }}</span>
                       <div class="action-buttons">
-                        <button @click="selectChat({ name: interest.name, channel: interest.name }, false)">Chat</button>
+                        <button @click="openInterest(interest, 'Chat')">Chat</button>
                         <join-button :joined="profileData.interests.includes(interest.name)"  @join="joinInterest(interest)"/>
                       </div>
                     </li>

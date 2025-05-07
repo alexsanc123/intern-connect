@@ -169,6 +169,9 @@ createApp({
       currentTeam: null,
       teamActiveTab: 'Members',
 
+      currentInterest: null,
+      interestActiveTab: 'Members',
+
       editingMessage: null,
 
       renameMode: false,
@@ -502,30 +505,33 @@ createApp({
     
 
     // INTEREST MANAGEMENT
-    async joinInterest(interestObj) {
-      let name = interestObj.name;
-      if (!this.profileData.interests.includes(name)) {
-        this.profileData.interests.push(name);
+    async joinInterest() {
+      let obj = await this.$graffiti.put({
+        value: {
+          userId: this.$graffitiSession.value.actor,
+          displayName: this.$graffitiSession.value.actor
+        },
+        channels: [ this.currentInterest.name ]
+      }, this.$graffitiSession.value);
+      this.profileData.interests.push(this.currentInterest.name);
+      await this.saveProfile();                                
+    },
+
+    async leaveInterest(memberObj) {
+      if (memberObj) {
+        await this.$graffiti.delete(memberObj, this.$graffitiSession.value);
+        this.profileData.interests = this.profileData.interests.filter(name => name !== this.currentInterest.name);
         await this.saveProfile();
-        this.initProfile(this.profileData);
-      }
-      let idx = this.interests.findIndex(i => i.name === name);
-      if (idx !== -1) {
-        this.interests[idx].members = this.interests[idx].members || [];
-        if (!this.interests[idx].members.includes(this.profileData.name)) {
-          this.interests[idx].members.push(this.profileData.name);
-        }
       }
     },
 
-    async leaveInterest(interestObj) {
-      let name = interestObj.name;
-      this.profileData.interests = this.profileData.interests.filter(i => i !== name);
-      await this.saveProfile();
-      let idx = this.interests.findIndex(i => i.name === name);
-      if (idx !== -1 && Array.isArray(this.interests[idx].members)) {
-        this.interests[idx].members = this.interests[idx].members.filter(m => m !== this.profileData.name);
-      }
+    async openInterest(interest, initialTab = 'Members') {
+        this.currentInterest   = interest;
+        this.interestActiveTab = initialTab;
+    },
+  
+    async backToInterests() {
+      this.currentInterest = null;
     },
 
     // TEAM MANAGEMENT
@@ -536,12 +542,16 @@ createApp({
           displayName: this.$graffitiSession.value.actor
         },
         channels: [ this.currentTeam.name ]
-      }, this.$graffitiSession.value);                                
+      }, this.$graffitiSession.value); 
+      this.profileData.teams.push(this.currentTeam.name);
+      await this.saveProfile();                         
     },
 
-    async leaveTeam() {
-      if (this.myMembershipUrl) {
-        await this.$graffiti.delete(this.myMembershipUrl, this.$graffitiSession.value);
+    async leaveTeam(memberObj) {
+      if (memberObj) {
+        await this.$graffiti.delete(memberObj, this.$graffitiSession.value);
+        this.profileData.teams = this.profileData.teams.filter(name => name !== this.currentTeam.name);
+        await this.saveProfile();
       }
     },
 
