@@ -497,6 +497,50 @@ input[type="submit"]:disabled {
     align-items: center; 
 }
 
+.namehover {
+    position: relative;
+    cursor: pointer;
+  }
+  .namehover::after {
+    content: attr(data-namehover);
+    position: absolute;
+    bottom: 100%; left: 50%;
+    transform: translateX(-50%) translateY(-5px);
+    background: rgba(0,0,0,0.75);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    font-size: 0.8rem;
+    z-index: 10;
+  }
+  .namehover:hover::after {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-10px);
+  }
+  
+
+.spinner {
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #118AB2;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    animation: spin 0.8s linear infinite;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  
+
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  
 
 @media (max-width: 767px) {
     body {

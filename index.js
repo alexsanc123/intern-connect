@@ -67,6 +67,10 @@ const ProfileForm = {
     modelValue: {
       type: Object,
       required: true
+    },
+    saving: {
+      type: Boolean,
+      required: true
     }
   },
   emits: ['update:modelValue', 'save'],
@@ -114,7 +118,11 @@ const ProfileForm = {
         >{{ team }}, </span>
       </div>
 
-      <button type="submit">Save Profile</button>
+      <button type="submit" :disabled="saving">
+      <span v-if="saving" class="spinner"></span>
+      <span v-if="!saving">Save Profile</span>
+      <span v-else>Saving…</span>
+    </button>
     </form>
   `
 };
@@ -221,9 +229,12 @@ createApp({
         location: '',
         date: '',
         time: '',
-        team: [],
+        teams: [],
         interests: []
       },
+
+      savingProfile: false,
+      showSaveToast: false,
     };
   },
 
@@ -488,10 +499,19 @@ createApp({
 
     // commented from studio
     async saveProfile() {
+      const start = Date.now();
+      this.savingProfile = true;
       await this.$graffiti.put({
         value: this.profileData,
         channels: [ this.$graffitiSession.value.actor ]
       }, this.$graffitiSession.value);
+      const elapsed = Date.now() - start;
+      if (elapsed < 500) {
+          await new Promise(r => setTimeout(r, 500 - elapsed));
+     }
+      this.savingProfile = false;
+      this.showSaveToast = true;
+      setTimeout(() => this.showSaveToast = false, 2000);
     },
 
     // commented from studio
@@ -515,7 +535,7 @@ createApp({
 
     // INTEREST MANAGEMENT
     async joinInterest() {
-      let obj = await this.$graffiti.put({
+      await this.$graffiti.put({
         value: {
           userId: this.$graffitiSession.value.actor,
           displayName: this.$graffitiSession.value.actor
@@ -523,7 +543,8 @@ createApp({
         channels: [ this.currentInterest.name ]
       }, this.$graffitiSession.value);
       this.profileData.interests.push(this.currentInterest.name);
-      await this.saveProfile();                                
+      await this.saveProfile(); 
+      confetti({ particleCount: 120, spread: 120, origin: { y: .8 } });                               
     },
 
     async leaveInterest(memberObj) {
@@ -545,7 +566,7 @@ createApp({
 
     // TEAM MANAGEMENT
     async joinTeam() {
-      let obj = await this.$graffiti.put({
+      await this.$graffiti.put({
         value: {
           userId: this.$graffitiSession.value.actor,
           displayName: this.$graffitiSession.value.actor
@@ -553,7 +574,8 @@ createApp({
         channels: [ this.currentTeam.name ]
       }, this.$graffitiSession.value); 
       this.profileData.teams.push(this.currentTeam.name);
-      await this.saveProfile();                         
+      await this.saveProfile();
+      confetti({ particleCount: 120, spread: 120, origin: { y: .8 } });                            
     },
 
     async leaveTeam(memberObj) {
@@ -584,15 +606,15 @@ createApp({
     openEventForm() {
       this.addingEvent = true;
       if (this.currentTeam) {
-        this.newEvent.team =  [ this.currentTeam.name ];
+        this.newEvent.teams =  [ this.currentTeam.name ];
         this.newEvent.interests = [];
       }
       else if (this.currentInterest) {
-        this.newEvent.team = '';
+        this.newEvent.teams = [];
         this.newEvent.interests = [ this.currentInterest.name ];
       }
       else {
-        this.newEvent.team = [];
+        this.newEvent.teams = [];
         this.newEvent.interests = [];
       }
     },
@@ -604,7 +626,7 @@ createApp({
         location: '',
         date: '',
         time: '',
-        team: [],
+        teams: [],
         interests: []
       };
     },
@@ -616,7 +638,7 @@ createApp({
           name:      this.newEvent.name,
           location:  this.newEvent.location,
           datetime:  date.getTime(),
-          team:      this.newEvent.team,
+          teams:      this.newEvent.teams,
           interests: this.newEvent.interests
         },
         channels: ['events']
@@ -628,9 +650,10 @@ createApp({
         location: '',
         date: '',
         time: '',
-        team: [],
+        teams: [],
         interests: []
       };
+      confetti({ particleCount: 120, spread: 120, origin: { y: .8 } });   
     },
   },
 })

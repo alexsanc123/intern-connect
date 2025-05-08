@@ -14,6 +14,7 @@
       }
     }
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -546,8 +547,9 @@
                         .filter(t => profileData.teams.includes(t.name))
                         .filter(t => t.name.toLowerCase().includes(searchTeams.toLowerCase()))"
                       :key="team.name"
+                      class="team-row namehover"
+                      :data-namehover="`Click to enter ${team.name} page`"
                       @click="openTeam(team, 'Members')"
-                      class="team-row"
                     >
                     <span>{{ team.name }}</span>
                       <div class="action-buttons">
@@ -572,6 +574,8 @@
                                     t.name.toLowerCase().includes(searchTeams.toLowerCase()))"
                       :key="team.name"
                       @click="openTeam(team, 'Members')"
+                      class="team-row namehover"
+                     :data-namehover="`Click to enter ${team.name} page`"
                     >
                       <span>{{ team.name }}</span>
                       <div class="action-buttons">
@@ -592,7 +596,7 @@
                   <h2>My Interests</h2>
                   <input type="text" v-model="searchInterests" placeholder="Search interests…" />
                   <ul>
-                    <li v-for="interest in interests.filter(i => profileData.interests.includes(i.name)).filter(i => i.name.toLowerCase().includes(searchInterests.toLowerCase()))" :key="interest.name" @click="openInterest(interest, 'Members')">
+                    <li v-for="interest in interests.filter(i => profileData.interests.includes(i.name)).filter(i => i.name.toLowerCase().includes(searchInterests.toLowerCase()))" :key="interest.name" @click="openInterest(interest, 'Members')" class="team-row namehover" :data-namehover="`Click to enter ${interest.name} page`">
                       <span>{{ interest.name }}</span>
                       <div class="action-buttons">
                         <button @click="openInterest(interest, 'Chat')">Chat</button>
@@ -604,7 +608,7 @@
       
                   <h3>Other Interests</h3>
                   <ul>
-                    <li v-for="interest in interests.filter(i => !profileData.interests.includes(i.name) && i.name.toLowerCase().includes(searchInterests.toLowerCase()))" :key="interest.name" @click="openInterest(interest, 'Members')">
+                    <li v-for="interest in interests.filter(i => !profileData.interests.includes(i.name) && i.name.toLowerCase().includes(searchInterests.toLowerCase()))" :key="interest.name" @click="openInterest(interest, 'Members')" class="team-row namehover" :data-namehover="`Click to enter ${interest.name} page`">
                       <span>{{ interest.name }}</span>
                       <div class="action-buttons">
                         <button @click="openInterest(interest, 'Chat')">Chat</button>
@@ -893,8 +897,12 @@
                   @loaded="initProfile"
                 />
               </graffiti-discover>
-              <profile-form v-model="profileData" @save="saveProfile"/>
+              <profile-form v-model="profileData" @save="saveProfile" :saving="savingProfile"/>
               <profile-card v-if="profileData.name || profileData.age" :profile="profileData"/>
+              <div v-if="showSaveToast" class="save-message">
+                  ✅ Profile saved!
+              </div>
+              
             </section>
           </main>
         </div>
