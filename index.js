@@ -130,9 +130,14 @@ const ProfileForm = {
 const ProfileLoader = {
   name: 'ProfileLoader',
   props: ['data'],
-  mounted() {
+  async mounted() {
     this.$emit('loaded', this.data);
+    await this.$graffiti.put({
+      value: { name: this.profileData.name },
+      channels: ['profiles']
+    }, this.$graffitiSession.value);
   },
+  
   render() { return null; }
 };
 
@@ -470,7 +475,12 @@ createApp({
     async addMember() {
       let user = this.newMember;
       if (!user || !this.currentChat) return;
-    
+      const exists = this.$refs.profileDiscover.objects
+          .some(o => o.value.name === this.newMember);
+        if (!exists) {
+          alert("That user doesn’t exist!");
+          return;
+        }
       let list = this.chatMembers[this.currentChat] || [];
       if (list.includes(user)) {
         alert("This user is already a member of the chat.");
@@ -571,6 +581,7 @@ createApp({
 
     // INTEREST MANAGEMENT
     async joinInterest() {
+      if (this.profileData.interests.includes(this.currentTeam.name)) return;
       await this.$graffiti.put({
         value: {
           userId: this.$graffitiSession.value.actor,
@@ -609,6 +620,7 @@ createApp({
 
     // TEAM MANAGEMENT
     async joinTeam() {
+      if (this.profileData.teams.includes(this.currentTeam.name)) return;
       await this.$graffiti.put({
         value: {
           userId: this.$graffitiSession.value.actor,
