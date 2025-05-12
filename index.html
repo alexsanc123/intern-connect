@@ -146,7 +146,7 @@
               <!-- TEAM GROUP CHAT -->
               <section v-else-if="teamActiveTab === 'Chat'">
                 <div class="chat-window">
-                  <div class="chat-body">
+                  <div class="chat-body" ref="chatBody">
                     <graffiti-discover
                       v-slot="{ objects: messageObjects, isInitialPolling }"
                       :channels="[ currentTeam.name ]"
@@ -385,7 +385,7 @@
               <!-- TEAM GROUP CHAT -->
               <section v-else-if="interestActiveTab === 'Chat'">
                 <div class="chat-window">
-                  <div class="chat-body">
+                  <div class="chat-body" ref="chatBody">
                     <graffiti-discover
                       v-slot="{ objects: messageObjects, isInitialPolling }"
                       :channels="[ currentInterest.name ]"
@@ -528,7 +528,7 @@
           <!-- Main homescreen -->
           <div v-else>
             <header>
-              <h1>Intern Connect</h1>
+              <h1>{{ headerTitle }}</h1>
               <nav class="tab-bar">
                 <button :class="{ active: activeTab === 'Teams' }" @click="activeTab = 'Teams'">Teams</button>
                 <button :class="{ active: activeTab === 'Interests' }" @click="activeTab = 'Interests'">Interests</button>
@@ -726,7 +726,7 @@
         <!-- Chat View -->
         <div v-if="bottomNavActive === 'chats'">
             <header>
-              <h1>Intern Connect</h1>
+              <h1>{{ headerTitle }}</h1>
             </header>
           
             <main class="container">
@@ -783,7 +783,7 @@
                 <div class="chat-window">
                   <div class="chat-header">
                     <button type="button" @click="currentChat = null">&larr; Back</button>
-                    <h2>Chat: {{ selectedChatName }}</h2>
+                    <h2>{{ headerTitle }}</h2>
                     <div class="chat-header-actions">
                       <join-button :joined="chatMembers[currentChat]?.includes(profileData.name)" @join="addSelfToChat"></join-button>
                       <button v-if="chatMembers[currentChat]?.includes(profileData.name)" class="leave-button" @click="leaveChat(currentChat)">Leave Group</button>
@@ -797,7 +797,7 @@
                     <button type="button" @click="renameMode = false">Cancel</button>
                   </form>
           
-                  <div class="chat-body">
+                  <div class="chat-body" ref="chatBody">
                     <graffiti-discover
                       v-slot="{ objects: messageObjects, isInitialPolling }"
                       :channels="messageChannels"
@@ -806,7 +806,7 @@
                       <ul class="chat-messages">
                         <li v-if="isInitialPolling" class="loading-message">Loading messages…</li>
                         <li
-                        v-for="msg in messageObjects.sort((a,b) => b.value.published - a.value.published)"
+                        v-for="msg in messageObjects.sort((a,b) => a.value.published - b.value.published)"
                         :key="msg.url"
                         :class="msg.actor === $graffitiSession.value.actor ? 'my-message' : 'other-message'"
                         >
@@ -868,7 +868,7 @@
         <!-- Profile View -->
         <div v-if="bottomNavActive === 'profile'">
           <header>
-            <h1>Intern Connect</h1>
+            <h1>{{ headerTitle }}</h1>
           </header>
           <main class="container">
             <section class="profile-section">

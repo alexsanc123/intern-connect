@@ -244,6 +244,29 @@ createApp({
         return [ this.currentTeam.name ];
       }
       return this.currentChat ? [ this.currentChat ] : [];
+    },
+
+    headerTitle() {
+      if (this.bottomNavActive === 'profile') {
+        return 'Profile';
+      }
+      if (this.bottomNavActive === 'chats') {
+        return this.currentChat
+          ? `Chat: ${this.selectedChatName}`
+          : 'Chats';
+      }
+      if (this.bottomNavActive === 'home') {
+        if (this.currentTeam) {
+          return this.currentTeam.name;
+        }
+
+        if (this.currentInterest) {
+          return this.currentInterest.name;
+        }
+
+        return this.activeTab;
+      }
+      return 'Intern Connect';
     }
 
   },
@@ -383,8 +406,10 @@ createApp({
       }
 
       this.myMessage = "";
-      await this.$nextTick();
-      this.$refs.messageInput.focus();
+      this.$nextTick(() => {
+        const container = this.$refs.chatBody;
+        if (container) container.scrollTop = container.scrollHeight;
+      });
     },
 
     edit(message) {
@@ -495,6 +520,11 @@ createApp({
       this.selectedChatName = name
       this.bottomNavActive = 'chats'
       this.chatMembers[channel] = this.chatMembers[channel] || []
+
+      this.$nextTick(() => {
+        const container = this.$refs.chatBody;
+        if (container) container.scrollTop = container.scrollHeight;
+      });
     },
 
     // commented from studio
@@ -658,8 +688,8 @@ createApp({
   },
 })
   .use(GraffitiPlugin, {
-    // graffiti: new GraffitiLocal(),
-    graffiti: new GraffitiRemote(),
+    graffiti: new GraffitiLocal(),
+    // graffiti: new GraffitiRemote(),
   })
   .mount("#app");
 
