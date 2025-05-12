@@ -246,6 +246,12 @@ createApp({
       return this.currentChat ? [ this.currentChat ] : [];
     },
 
+    isDirectChat() {
+      if (!this.currentChat) return false;
+      const members = this.chatMembers[this.currentChat] || [];
+      return members.length === 2;
+    },
+
     headerTitle() {
       if (this.bottomNavActive === 'profile') {
         return 'Profile';
@@ -588,6 +594,13 @@ createApp({
     async openInterest(interest, initialTab = 'Members') {
         this.currentInterest   = interest;
         this.interestActiveTab = initialTab;
+        this.joinTeam(interest);
+        const key = this.currentInterest.name;
+        if (!this.profileData.chats.some(c => c.channel === key)) {
+          this.profileData.chats.push({ name: key, channel: key });
+          await this.saveProfile();
+        }
+        await this.saveProfile();
     },
   
     async backToInterests() {
@@ -619,6 +632,13 @@ createApp({
     async openTeam(team, initialTab = 'Members') {
         this.currentTeam   = team;
         this.teamActiveTab = initialTab;
+        this.joinTeam(team);
+        const key = this.currentTeam.name;
+        if (!this.profileData.chats.some(c => c.channel === key)) {
+          this.profileData.chats.push({ name: key, channel: key });
+          await this.saveProfile();
+        }
+        await this.saveProfile();
     },
   
     async backToTeams() {

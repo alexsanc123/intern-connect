@@ -784,7 +784,7 @@
                   <div class="chat-header">
                     <button type="button" @click="currentChat = null">&larr; Back</button>
                     <h2>{{ headerTitle }}</h2>
-                    <div class="chat-header-actions">
+                    <div class="chat-header-actions" v-if="!isDirectChat">
                       <join-button :joined="chatMembers[currentChat]?.includes(profileData.name)" @join="addSelfToChat"></join-button>
                       <button v-if="chatMembers[currentChat]?.includes(profileData.name)" class="leave-button" @click="leaveChat(currentChat)">Leave Group</button>
                       <button @click="rename" v-if="!renameMode">Rename</button>
@@ -839,7 +839,7 @@
           
                 <div class="chat-members">
                     <h3>Members ({{ chatMembers[currentChat]?.length || 0 }})</h3>
-                    <div class="member-search">
+                    <div class="member-search" v-if="!isDirectChat">
                       <form @submit.prevent="addMember">
                         <input v-model="newMember" placeholder="Add user by name…" required />
                         <button type="submit" class="add-button">Add</button>
