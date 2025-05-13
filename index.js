@@ -137,32 +137,32 @@ const ProfileLoader = {
       channels: ['profiles']
     }, this.$graffitiSession.value);
   },
-  
+
   render() { return null; }
 };
 
 createApp({
-  
+
   data() {
     return {
       myMessage: "",
       sending: false,
       channels: ["designftw"],
-  
+
       groupChatName: "",
       creatingGroup: false,
-  
+
       groupChatSchema: {
         properties: {
           value: {
             required: ["activity", "object"],
             properties: {
-              activity:   { let: "Create" },
+              activity: { let: "Create" },
               object: {
                 required: ["type", "name", "channel"],
                 properties: {
-                  type:    { let: "Group Chat" },
-                  name:    { type: "string" },
+                  type: { let: "Group Chat" },
+                  name: { type: "string" },
                   channel: { type: "string" },
                   members: {
                     type: "array",
@@ -198,8 +198,8 @@ createApp({
 
       teams: [
         { name: "International ETFs", membersCount: 0 },
-        { name: "Options", membersCount: 0},
-        { name: "Fixed Income", membersCount: 0},
+        { name: "Options", membersCount: 0 },
+        { name: "Fixed Income", membersCount: 0 },
         { name: "Data Science", membersCount: 0 },
         { name: "Blockchain Dev", membersCount: 0 },
         { name: "Product Management", membersCount: 0 },
@@ -207,9 +207,9 @@ createApp({
         { name: "Sales", membersCount: 0 },
       ],
       interests: [
-        { name: "Photography", membersCount: 0},
-        { name: "Running", membersCount: 0},
-        { name: "Crafting", membersCount: 0},
+        { name: "Photography", membersCount: 0 },
+        { name: "Running", membersCount: 0 },
+        { name: "Crafting", membersCount: 0 },
         { name: "Travel", membersCount: 0 },
         { name: "Chess", membersCount: 0 },
         { name: "Yoga", membersCount: 0 },
@@ -248,9 +248,12 @@ createApp({
   computed: {
     messageChannels() {
       if (this.currentTeam && this.teamActiveTab === 'Chat') {
-        return [ this.currentTeam.name ];
+        return [this.currentTeam.name];
       }
-      return this.currentChat ? [ this.currentChat ] : [];
+      if (this.currentInterest && this.interestActiveTab === 'Chat') {
+        return [this.currentInterest.name];
+      }
+      return this.currentChat ? [this.currentChat] : [];
     },
 
     isDirectChat() {
@@ -310,7 +313,7 @@ createApp({
       }
       return Object.values(map);
     },
-    
+
 
     // CHAT CREATION AND MANAGEMENT
     async createGroupChat(session) {
@@ -332,10 +335,11 @@ createApp({
       );
       this.profileData.chats.push({
         name: this.groupChatName,
-        channel: newChannel});
+        channel: newChannel
+      });
       this.creatingGroup = false;
       this.groupChatName = "";
-      
+
       await this.$nextTick();
     },
 
@@ -355,14 +359,14 @@ createApp({
         this.addSelfToChat();
       }
     },
-    
+
     async leaveChat(channelKey) {
       this.profileData.chats = this.profileData.chats.filter(c => c.channel !== channelKey);
       await this.saveProfile();
       await this.$graffiti.put({
         value: {
           describes: channelKey,
-          members: this.chatMembers[channelKey].filter(u=>u!==this.profileData.name)
+          members: this.chatMembers[channelKey].filter(u => u !== this.profileData.name)
         },
         channels: ["designftw"]
       }, this.$graffitiSession.value);
@@ -370,7 +374,7 @@ createApp({
       if (this.currentChat === channelKey) {
         this.currentChat = null;
         this.selectedChatName = "";
-      }  
+      }
     },
 
     // CHAT CUSTOMIZATION
@@ -407,14 +411,14 @@ createApp({
         this.sending = true;
         await this.$graffiti.put(
           {
-            value: { 
+            value: {
               content: this.myMessage,
-              published: Date.now() 
+              published: Date.now()
             },
             channels: this.messageChannels
-        }, 
-        session
-      );
+          },
+          session
+        );
         this.sending = false;
       }
 
@@ -444,16 +448,16 @@ createApp({
 
     // MEMBER MANAGEMENT
     initProfile(data) {
-      this.profileData = {...data};
+      this.profileData = { ...data };
     },
 
     async addSelfToChat() {
       if (!this.currentChat || !this.$graffitiSession.value) return;
-      
+
       let newList = [...(this.chatMembers[this.currentChat] || []), this.profileData.name].filter((u, i, a) => a.indexOf(u) === i);
-      
+
       this.chatMembers[this.currentChat] = newList;
-      
+
       await this.$graffiti.put({
         value: {
           describes: this.currentChat,
@@ -478,11 +482,11 @@ createApp({
       let user = this.newMember;
       if (!user || !this.currentChat) return;
       const exists = this.$refs.profileDiscover.objects
-          .some(o => o.value.name === this.newMember);
-        if (!exists) {
-          alert("That user doesn’t exist!");
-          return;
-        }
+        .some(o => o.value.name === this.newMember);
+      if (!exists) {
+        alert("That user doesn’t exist!");
+        return;
+      }
       let list = this.chatMembers[this.currentChat] || [];
       if (list.includes(user)) {
         alert("This user is already a member of the chat.");
@@ -492,7 +496,7 @@ createApp({
       list.push(user);
       this.chatMembers[this.currentChat] = list;
       this.newMember = "";
-    
+
       await this.$graffiti.put({
         value: {
           describes: this.currentChat,
@@ -501,14 +505,14 @@ createApp({
         channels: ["designftw"]
       }, this.$graffitiSession.value);
     },
-    
+
     async removeMember(user) {
       if (!this.currentChat) return;
-    
+
       let list = (this.chatMembers[this.currentChat] || [])
         .filter(u => u !== user);
       this.chatMembers[this.currentChat] = list;
-    
+
       await this.$graffiti.put({
         value: {
           describes: this.currentChat,
@@ -517,13 +521,13 @@ createApp({
         channels: ["designftw"]
       }, this.$graffitiSession.value);
     },
-    
+
     async joinChat(session) {
       let newList = [
         ...(this.chatMembers[this.currentChat] || []),
         this.profileData.name
       ].filter((u, i, a) => a.indexOf(u) === i);
-  
+
       await this.$graffiti.put({
         value: {
           describes: this.currentChat,
@@ -551,12 +555,12 @@ createApp({
       this.savingProfile = true;
       await this.$graffiti.put({
         value: this.profileData,
-        channels: [ this.$graffitiSession.value.actor ]
+        channels: [this.$graffitiSession.value.actor]
       }, this.$graffitiSession.value);
       const elapsed = Date.now() - start;
       if (elapsed < 500) {
-          await new Promise(r => setTimeout(r, 500 - elapsed));
-     }
+        await new Promise(r => setTimeout(r, 500 - elapsed));
+      }
       this.savingProfile = false;
       this.showSaveToast = true;
       setTimeout(() => this.showSaveToast = false, 2000);
@@ -577,105 +581,107 @@ createApp({
     //       ]
     //     }, this.$graffitiSession.value);
     // },
-    
 
-    
+
+
 
     // INTEREST MANAGEMENT
-    async joinInterest() {
-      if (this.profileData.interests.includes(this.currentTeam.name)) return;
+    async joinInterest(interest = this.currentInterest) {
+      if (this.profileData.interests.includes(interest.name)) return;
       await this.$graffiti.put({
         value: {
           userId: this.$graffitiSession.value.actor,
           displayName: this.$graffitiSession.value.actor
         },
-        channels: [ this.currentInterest.name ]
+        channels: [interest.name]
       }, this.$graffitiSession.value);
-      this.profileData.interests.push(this.currentInterest.name);
-      await this.saveProfile(); 
-      confetti({ particleCount: 120, spread: 120, origin: { y: .8 } });                               
+      this.profileData.interests.push(interest.name);
+      await this.saveProfile();
+      confetti({ particleCount: 120, spread: 120, origin: { y: .8 } });
     },
 
-    async leaveInterest(memberObj) {
+    async leaveInterest(memberObj, interest = this.currentInterest) {
+      if (!memberObj || !interests) return;
       if (memberObj) {
         await this.$graffiti.delete(memberObj, this.$graffitiSession.value);
-        this.profileData.interests = this.profileData.interests.filter(name => name !== this.currentInterest.name);
+        this.profileData.interests = this.profileData.interests.filter(name => name !== interest.name);
         await this.saveProfile();
       }
     },
 
     async openInterest(interest, initialTab = 'Members') {
-        this.currentInterest   = interest;
-        this.interestActiveTab = initialTab;
-        this.joinTeam(interest);
-        const key = this.currentInterest.name;
-        if (!this.profileData.chats.some(c => c.channel === key)) {
-          this.profileData.chats.push({ name: key, channel: key });
-          await this.saveProfile();
-        }
+      this.currentInterest = interest;
+      this.interestActiveTab = initialTab;
+      // await this.joinInterest(interest);
+      const key = this.currentInterest.name;
+      if (!this.profileData.chats.some(c => c.channel === key)) {
+        this.profileData.chats.push({ name: key, channel: key });
         await this.saveProfile();
+      }
+      await this.saveProfile();
     },
-  
+
     async backToInterests() {
       this.currentInterest = null;
     },
 
     // TEAM MANAGEMENT
-    async joinTeam() {
-      if (this.profileData.teams.includes(this.currentTeam.name)) return;
+    async joinTeam(team = this.currentTeam) {
+      if (this.profileData.teams.includes(team.name)) return;
       await this.$graffiti.put({
         value: {
           userId: this.$graffitiSession.value.actor,
           displayName: this.$graffitiSession.value.actor
         },
-        channels: [ this.currentTeam.name ]
-      }, this.$graffitiSession.value); 
-      this.profileData.teams.push(this.currentTeam.name);
+        channels: [team.name]
+      }, this.$graffitiSession.value);
+      this.profileData.teams.push(team.name);
       await this.saveProfile();
-      confetti({ particleCount: 120, spread: 120, origin: { y: .8 } });                            
+      confetti({ particleCount: 120, spread: 120, origin: { y: .8 } });
     },
 
-    async leaveTeam(memberObj) {
+    async leaveTeam(memberObj, team = this.currentTeam) {
+      if (!memberObj || !team) return;
       if (memberObj) {
         await this.$graffiti.delete(memberObj, this.$graffitiSession.value);
-        this.profileData.teams = this.profileData.teams.filter(name => name !== this.currentTeam.name);
+        this.profileData.teams = this.profileData.teams.filter(name => name !== team.name);
         await this.saveProfile();
       }
     },
 
     async openTeam(team, initialTab = 'Members') {
-        this.currentTeam   = team;
-        this.teamActiveTab = initialTab;
-        this.joinTeam(team);
-        const key = this.currentTeam.name;
-        if (!this.profileData.chats.some(c => c.channel === key)) {
-          this.profileData.chats.push({ name: key, channel: key });
-          await this.saveProfile();
-        }
+      this.currentTeam = team;
+      this.teamActiveTab = initialTab;
+      // await this.joinTeam(team);
+      const key = this.currentTeam.name;
+      if (!this.profileData.chats.some(c => c.channel === key)) {
+        this.profileData.chats.push({ name: key, channel: key });
         await this.saveProfile();
+      }
+      await this.saveProfile();
     },
-  
+
     async backToTeams() {
       this.currentTeam = null;
       this.myMembershipUrl = null;
     },
-  
+
     openChatWithMember(member) {
       this.selectChat({
-      name: member.displayName || member.username,
-      channel: member.id
+        name: member.displayName || member.username,
+        channel: member.id
       })
     },
 
     openEventForm() {
       this.addingEvent = true;
       if (this.currentTeam) {
-        this.newEvent.teams =  [ this.currentTeam.name ];
+        this.newEvent.teams = [this.currentTeam.name];
         this.newEvent.interests = [];
       }
       else if (this.currentInterest) {
         this.newEvent.teams = [];
-        this.newEvent.interests = [ this.currentInterest.name ];
+        this.newEvent.interests = [this.currentInterest.name];
       }
       else {
         this.newEvent.teams = [];
@@ -699,10 +705,10 @@ createApp({
       const date = new Date(`${this.newEvent.date}T${this.newEvent.time}`);
       await this.$graffiti.put({
         value: {
-          name:      this.newEvent.name,
-          location:  this.newEvent.location,
-          datetime:  date.getTime(),
-          teams:      this.newEvent.teams,
+          name: this.newEvent.name,
+          location: this.newEvent.location,
+          datetime: date.getTime(),
+          teams: this.newEvent.teams,
           interests: this.newEvent.interests
         },
         channels: ['events']
@@ -717,7 +723,7 @@ createApp({
         teams: [],
         interests: []
       };
-      confetti({ particleCount: 120, spread: 120, origin: { y: .8 } });   
+      confetti({ particleCount: 120, spread: 120, origin: { y: .8 } });
     },
 
     async rsvp(eventObj, session) {
@@ -726,7 +732,7 @@ createApp({
           userId: this.$graffitiSession.value.actor,
           displayName: this.profileData.name
         },
-        channels: [ eventObj.url ]
+        channels: [eventObj.url]
       }, session);
     },
 
@@ -742,10 +748,10 @@ createApp({
       this.showDetails = false;
       this.selectedEvent = null;
     },
-  
+
     startChatWith(creatorId) {
       this.bottomNavActive = 'chats';
-  
+
       this.currentChat = creatorId;
     },
 
