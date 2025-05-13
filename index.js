@@ -463,7 +463,7 @@ createApp({
           describes: this.currentChat,
           members: newList
         },
-        channels: ["designftw"]
+        channels: [this.currentChat]
       }, this.$graffitiSession.value);
 
       await this.saveProfile();
@@ -478,12 +478,22 @@ createApp({
       }
     },
 
-    async addMember() {
+    uniqueProfiles(profiles) {
+      let seen = new Set()
+      return profiles.filter(p => {
+        const name = p.value.name
+        if (seen.has(name)) return false
+        seen.add(name)
+        return true
+      })
+    },
+
+    async addMember(allProfiles) {
       let user = this.newMember;
       if (!user || !this.currentChat) return;
       const exists = this.$refs.profileDiscover.objects
         .some(o => o.value.name === this.newMember);
-      if (!exists) {
+      if (!allProfiles.some(o => o.value.name === user)) {
         alert("That user doesn’t exist!");
         return;
       }
@@ -502,7 +512,7 @@ createApp({
           describes: this.currentChat,
           members: list
         },
-        channels: ["designftw"]
+        channels: [this.currentChat]
       }, this.$graffitiSession.value);
     },
 
@@ -518,7 +528,7 @@ createApp({
           describes: this.currentChat,
           members: list
         },
-        channels: ["designftw"]
+        channels: [this.currentChat]
       }, this.$graffitiSession.value);
     },
 
@@ -533,7 +543,7 @@ createApp({
           describes: this.currentChat,
           members: newList
         },
-        channels: ["designftw"]
+        channels: [this.currentChat]
       }, session);
     },
 

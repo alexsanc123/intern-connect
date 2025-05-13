@@ -997,12 +997,12 @@
               <h3>Members ({{ chatMembers[currentChat]?.length || 0 }})</h3>
               <graffiti-discover :channels="['profiles']"
                 :schema="{properties:{value:{properties:{name:{type:'string'}},required:['name']}}}"
-                v-slot="{ objects: allProfiles }" ref="profileDiscover">
+                v-slot="{ objects: allProfiles, isInitialPolling }" ref="profileDiscover">
                 <div class="member-search" v-if="!isDirectChat">
-                  <form @submit.prevent="addMember">
+                  <form @submit.prevent="addMember(allProfiles)">
                     <select v-model="newMember" required>
                       <option disabled value="">Select user to add…</option>
-                      <option v-for="prof in allProfiles" :key="prof.url" :value="prof.value.name">
+                      <option v-for="prof in uniqueProfiles(allProfiles)" :key="prof.value.name" :value="prof.value.name">
                         {{ prof.value.name }}
                       </option>
                     </select>
