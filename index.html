@@ -130,7 +130,7 @@
                     :schema="{ properties:{ value:{ required:['content','published'], properties:{ content:{type:'string'}, published:{type:'number'} } } } }">
                     <ul class="chat-messages">
                       <li v-if="isInitialPolling" class="loading-message">Loading messages…</li>
-                      <li v-for="msg in messageObjects.sort((a,b) => b.value.published - a.value.published)"
+                      <li v-for="msg in messageObjects.sort((a,b) => a.value.published - b.value.published)"
                         :key="msg.url"
                         :class="msg.actor === $graffitiSession.value.actor ? 'my-message' : 'other-message'">
                         <div class="message-content">
@@ -186,16 +186,98 @@
                     </li>
                     <li v-else v-for="e in eventObjs
                           .filter(e => e.value.teams.includes(currentTeam.name))
-                          .sort((a,b)=>a.value.datetime - b.value.datetime)" :key="e.url" class="event-card">
+                          .sort((a,b)=>a.value.datetime - b.value.datetime)" :key="e.url" class="event-card clickable" @click="openEventDetails(e)">
+                          <div class="hover-hint">Click for details</div>
                       <span class="event-time">
-                        {{ new Date(e.value.datetime).toLocaleDateString() }},
-                        {{ new Date(e.value.datetime).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) }}
+                        {{ new Date(e.value.datetime).toLocaleDateString() }}, {{new Date(e.value.datetime).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}}
                       </span>
                       <strong class="event-name">{{ e.value.name }}</strong>
                       <em class="event-location">{{ e.value.location }}</em>
+                      <graffiti-discover
+                          :channels="[ e.url ]"
+                          :schema="{
+                            properties:{
+                              value:{
+                                required:['userId','displayName'],
+                                properties:{
+                                  userId:{ type:'string' },
+                                  displayName:{ type:'string' }
+                                }
+                              }
+                            }
+                          }"
+                          v-slot="{ objects: rsvpObjs, isInitialPolling: loadingRsvps }"
+                        >
+                          <div class="rsvp-summary" :title="'Click for details'">
+                            <button
+                              v-if="!loadingRsvps && !rsvpObjs.some(r=>r.value.userId===$graffitiSession.value.actor)"
+                              @click.stop="rsvp(e,$graffitiSession.value)"
+                            >
+                              RSVP
+                            </button>
+                            <button
+                              v-if="!loadingRsvps &&  rsvpObjs.some(r=>r.value.userId===$graffitiSession.value.actor)"
+                              @click.stop="cancelRsvp(rsvpObjs.find(r=>r.value.userId===$graffitiSession.value.actor), $graffitiSession.value)"
+                            >
+                              Cancel RSVP
+                            </button>
+                            <span v-if="!loadingRsvps">{{ rsvpObjs.length }} going</span>
+                            <span v-else>…</span>
+                          </div>
+                        </graffiti-discover>
                     </li>
                   </ul>
-
+                  <div v-if="showDetails" class="event-details-overlay">
+                    <div class="event-details">
+                      <button class="close" @click="closeDetails">×</button>
+                      <h2>{{ selectedEvent.value.name }}</h2>
+                      <p>{{ new Date(selectedEvent.value.datetime).toLocaleDateString() }} • {{ new Date(selectedEvent.value.datetime).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }) }} • {{ selectedEvent.value.location }}</p>
+                  
+                      <graffiti-discover
+                        :channels="[ selectedEvent.actor ]"
+                        :schema="{
+                          properties:{
+                            value:{
+                              required:['name'],
+                              properties:{ name:{ type:'string' } }
+                            }
+                          }
+                        }"
+                        v-slot="{ objects: creator, isInitialPolling: loadingCreator }"
+                      >
+                        <p>
+                          Created by:
+                          <strong v-if="!loadingCreator && creator.length">
+                            {{ creator[creator.length-1].value.name }}
+                          </strong>
+                          <em v-else>{{ selectedEvent.value.actor }}</em>
+                        </p>
+                      </graffiti-discover>
+                  
+                      <graffiti-discover
+                        :channels="[ selectedEvent.url ]"
+                        :schema="{
+                          properties:{
+                            value:{
+                              required:['displayName'],
+                              properties:{ displayName:{ type:'string' } }
+                            }
+                          }
+                        }"
+                        v-slot="{ objects: rsvpList, isInitialPolling: loadingList }"
+                      >
+                        <p v-if="loadingList">Loading…</p>
+                        <ul v-else>
+                          <li v-for="r in rsvpList" :key="r.url">{{ r.value.displayName }}</li>
+                        </ul>
+                      </graffiti-discover>
+                  
+                      <button class="chat-btn" @click="startChatWith(selectedEvent.actor)">
+                        💬 Message creator
+                      </button>
+                    </div>
+                  </div> 
+                  
                   <button class="add-event-btn" @click="openEventForm">
                     Add a New Event
                   </button>
@@ -392,16 +474,98 @@
                     </li>
                     <li v-else v-for="e in eventObjs
                         .filter(e => e.value.interests.includes(currentInterest.name))
-                        .sort((a,b)=>a.value.datetime - b.value.datetime)" :key="e.url" class="event-card">
-                      <span class="event-time">
+                        .sort((a,b)=>a.value.datetime - b.value.datetime)" :key="e.url" class="event-card clickable" @click="openEventDetails(e)">
+                        <div class="hover-hint">Click for details</div>
+                        <span class="event-time">
                         {{ new Date(e.value.datetime).toLocaleDateString() }},
                         {{ new Date(e.value.datetime).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) }}
                       </span>
                       <strong class="event-name">{{ e.value.name }}</strong>
-                      <em class="event-location">{{ e.value.location }}</em>
+                      <graffiti-discover
+                        :channels="[ e.url ]"
+                        :schema="{
+                          properties:{
+                            value:{
+                              required:['userId','displayName'],
+                              properties:{
+                                userId:{ type:'string' },
+                                displayName:{ type:'string' }
+                              }
+                            }
+                          }
+                        }"
+                        v-slot="{ objects: rsvpObjs, isInitialPolling: loadingRsvps }"
+                      >
+                        <div class="rsvp-summary" :title="'Click for details'">
+                          <button
+                            v-if="!loadingRsvps && !rsvpObjs.some(r=>r.value.userId===$graffitiSession.value.actor)"
+                            @click.stop="rsvp(e,$graffitiSession.value)"
+                          >
+                            RSVP
+                          </button>
+                          <button
+                            v-if="!loadingRsvps &&  rsvpObjs.some(r=>r.value.userId===$graffitiSession.value.actor)"
+                            @click.stop="cancelRsvp(rsvpObjs.find(r=>r.value.userId===$graffitiSession.value.actor), $graffitiSession.value)"
+                          >
+                            Cancel RSVP
+                          </button>
+                          <span v-if="!loadingRsvps">{{ rsvpObjs.length }} going</span>
+                          <span v-else>…</span>
+                        </div>
+                      </graffiti-discover>
                     </li>
                   </ul>
-
+                  <div v-if="showDetails" class="event-details-overlay">
+                    <div class="event-details">
+                      <button class="close" @click="closeDetails">×</button>
+                      <h2>{{ selectedEvent.value.name }}</h2>
+                      <p>{{ new Date(selectedEvent.value.datetime).toLocaleDateString() }} • {{ new Date(selectedEvent.value.datetime).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }) }} • {{ selectedEvent.value.location }}</p>
+                  
+                      <graffiti-discover
+                        :channels="[ selectedEvent.actor ]"
+                        :schema="{
+                          properties:{
+                            value:{
+                              required:['name'],
+                              properties:{ name:{ type:'string' } }
+                            }
+                          }
+                        }"
+                        v-slot="{ objects: creator, isInitialPolling: loadingCreator }"
+                      >
+                        <p>
+                          Created by:
+                          <strong v-if="!loadingCreator && creator.length">
+                            {{ creator[creator.length-1].value.name }}
+                          </strong>
+                          <em v-else>{{ selectedEvent.value.actor }}</em>
+                        </p>
+                      </graffiti-discover>
+                  
+                      <graffiti-discover
+                        :channels="[ selectedEvent.url ]"
+                        :schema="{
+                          properties:{
+                            value:{
+                              required:['displayName'],
+                              properties:{ displayName:{ type:'string' } }
+                            }
+                          }
+                        }"
+                        v-slot="{ objects: rsvpList, isInitialPolling: loadingList }"
+                      >
+                        <p v-if="loadingList">Loading…</p>
+                        <ul v-else>
+                          <li v-for="r in rsvpList" :key="r.url">{{ r.value.displayName }}</li>
+                        </ul>
+                      </graffiti-discover>
+                  
+                      <button class="chat-btn" @click="startChatWith(selectedEvent.actor)">
+                        💬 Message creator
+                      </button>
+                    </div>
+                  </div> 
+                  
                   <button class="add-event-btn" @click="openEventForm">
                     Add a New Event
                   </button>
@@ -569,16 +733,101 @@
                     <li v-else-if="!eventObjs.length" class="empty-message">
                       No upcoming events.
                     </li>
-                    <li v-else v-for="e in eventObjs.sort((a,b) => a.value.datetime - b.value.datetime)" :key="e.url"
-                      class="event-card">
-                      <span class="event-time">
+                      <li v-else v-for="e in eventObjs" :key="e.url" class="event-card clickable" @click="openEventDetails(e)">
+                        <div class="hover-hint">Click for details</div>
+                        <span class="event-time">
                         {{ new Date(e.value.datetime).toLocaleDateString() }}
                         , {{ new Date(e.value.datetime).toLocaleTimeString([], { hour: '2-digit', minute:'2-digit' }) }}
                       </span>
                       <strong class="event-name">{{ e.value.name }}</strong>
                       <em class="event-location">{{ e.value.location }}</em>
+                      <graffiti-discover
+                        :channels="[ e.url ]"
+                        :schema="{
+                          properties:{
+                            value:{
+                              required:['userId','displayName'],
+                              properties:{
+                                userId:{ type:'string' },
+                                displayName:{ type:'string' }
+                              }
+                            }
+                          }
+                        }"
+                        v-slot="{ objects: rsvpObjs, isInitialPolling: loadingRsvps }"
+                      >
+                        <div class="rsvp-summary" :title="'Click for details'">
+                          <button
+                            v-if="!loadingRsvps && !rsvpObjs.some(r=>r.value.userId===$graffitiSession.value.actor)"
+                            @click.stop="rsvp(e,$graffitiSession.value)"
+                          >
+                            RSVP
+                          </button>
+                          <button
+                            v-if="!loadingRsvps &&  rsvpObjs.some(r=>r.value.userId===$graffitiSession.value.actor)"
+                            @click.stop="cancelRsvp(rsvpObjs.find(r=>r.value.userId===$graffitiSession.value.actor), $graffitiSession.value)"
+                          >
+                            Cancel RSVP
+                          </button>
+                          <span v-if="!loadingRsvps">{{ rsvpObjs.length }} going</span>
+                          <span v-else>…</span>
+                        </div>
+                      </graffiti-discover>
                     </li>
+                                      
+                    
                   </ul>
+                  <div v-if="showDetails" class="event-details-overlay">
+                    <div class="event-details">
+                      <button class="close" @click="closeDetails">×</button>
+                      <h2>{{ selectedEvent.value.name }}</h2>
+                      <p>{{ new Date(selectedEvent.value.datetime).toLocaleDateString() }} • {{ new Date(selectedEvent.value.datetime).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }) }} • {{ selectedEvent.value.location }}</p>
+                  
+                      <graffiti-discover
+                        :channels="[ selectedEvent.actor ]"
+                        :schema="{
+                          properties:{
+                            value:{
+                              required:['name'],
+                              properties:{ name:{ type:'string' } }
+                            }
+                          }
+                        }"
+                        v-slot="{ objects: creator, isInitialPolling: loadingCreator }"
+                      >
+                        <p>
+                          Created by:
+                          <strong v-if="!loadingCreator && creator.length">
+                            {{ creator[creator.length-1].value.name }}
+                          </strong>
+                          <em v-else>{{ selectedEvent.value.actor }}</em>
+                        </p>
+                      </graffiti-discover>
+                  
+                      <graffiti-discover
+                        :channels="[ selectedEvent.url ]"
+                        :schema="{
+                          properties:{
+                            value:{
+                              required:['displayName'],
+                              properties:{ displayName:{ type:'string' } }
+                            }
+                          }
+                        }"
+                        v-slot="{ objects: rsvpList, isInitialPolling: loadingList }"
+                      >
+                        <p v-if="loadingList">Loading…</p>
+                        <ul v-else>
+                          <li v-for="r in rsvpList" :key="r.url">{{ r.value.displayName }}</li>
+                        </ul>
+                      </graffiti-discover>
+                  
+                      <button class="chat-btn" @click="startChatWith(selectedEvent.actor)">
+                        💬 Message creator
+                      </button>
+                    </div>
+                  </div> 
+
                   <button class="add-event-btn" @click="openEventForm">
                     Add a New Event
                   </button>

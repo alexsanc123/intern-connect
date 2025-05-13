@@ -534,6 +534,73 @@ input[type="submit"]:disabled {
     vertical-align: middle;
     margin-right: 6px;
   }
+
+  .event-card.clickable { cursor: pointer; }
+  .rsvp-summary { display: flex; align-items: center; gap: .5rem; }
+ 
+  .event-details-overlay {
+    position: fixed;
+    top:0; left:0; right:0; bottom:0;
+    background: rgba(0,0,0,0.4);
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+    z-index: 1000;
+  }
+  .event-details {
+    background: white;
+    padding: 2rem;
+    border-radius: .5rem;
+    max-width: 400px;
+    width: 90%;
+    position: relative;
+  }
+  .event-details .close {
+    position: absolute; 
+    top: .5rem; 
+    right: .5rem;
+    background: transparent; 
+    border:none; 
+    font-size: 1.5rem;
+    cursor: pointer;
+    z-index: 1001;
+    color: black;
+  }
+  .chat-btn {
+    margin-top: 1rem;
+    display: block;
+  }
+  
+  .event-card {
+    position: relative;
+    transition: transform .2s ease, box-shadow .2s ease;
+  }
+  
+  .event-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+  }
+  
+
+  .hover-hint {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    background: rgba(0,0,0,0.7);
+    color: #fff;
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .15s ease;
+  }
+  
+  .event-card:hover .hover-hint {
+    opacity: 1;
+  }
+  
+  
   
 
 

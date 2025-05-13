@@ -133,7 +133,7 @@ const ProfileLoader = {
   async mounted() {
     this.$emit('loaded', this.data);
     await this.$graffiti.put({
-      value: { name: this.profileData.name },
+      value: { name: this.data.name },
       channels: ['profiles']
     }, this.$graffitiSession.value);
   },
@@ -240,6 +240,8 @@ createApp({
 
       savingProfile: false,
       showSaveToast: false,
+      showDetails: false,
+      selectedEvent: null
     };
   },
 
@@ -717,6 +719,36 @@ createApp({
       };
       confetti({ particleCount: 120, spread: 120, origin: { y: .8 } });   
     },
+
+    async rsvp(eventObj, session) {
+      await this.$graffiti.put({
+        value: {
+          userId: this.$graffitiSession.value.actor,
+          displayName: this.profileData.name
+        },
+        channels: [ eventObj.url ]
+      }, session);
+    },
+
+    async cancelRsvp(rsvpObj, session) {
+      await this.$graffiti.delete(rsvpObj, session);
+    },
+
+    openEventDetails(eventObj) {
+      this.selectedEvent = eventObj;
+      this.showDetails = true;
+    },
+    closeDetails() {
+      this.showDetails = false;
+      this.selectedEvent = null;
+    },
+  
+    startChatWith(creatorId) {
+      this.bottomNavActive = 'chats';
+  
+      this.currentChat = creatorId;
+    },
+
   },
 })
   .use(GraffitiPlugin, {
