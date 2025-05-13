@@ -205,6 +205,17 @@ createApp({
         { name: "Product Management", membersCount: 0 },
         { name: "Equity Research", membersCount: 0 },
         { name: "Sales", membersCount: 0 },
+        { name: "Risk Management", membersCount: 0 },
+        { name: "Compliance & Legal", membersCount: 0 },
+        { name: "Mergers & Acquisitions", membersCount: 0 },
+        { name: "Private Equity", membersCount: 0 },
+        { name: "Venture Capital", membersCount: 0 },
+        { name: "Derivatives", membersCount: 0 },
+        { name: "FX & Currency", membersCount: 0 },
+        { name: "Commodities", membersCount: 0 },
+        { name: "Data Engineering", membersCount: 0 },
+        { name: "DevOps & Infrastructure", membersCount: 0 },
+        { name: "Marketing Analytics", membersCount: 0 }
       ],
       interests: [
         { name: "Photography", membersCount: 0 },
@@ -213,7 +224,37 @@ createApp({
         { name: "Travel", membersCount: 0 },
         { name: "Chess", membersCount: 0 },
         { name: "Yoga", membersCount: 0 },
-        { name: "Cooking", membersCount: 0 }
+        { name: "Cooking", membersCount: 0 },
+        { name: "Reading", membersCount: 0 },
+        { name: "Writing", membersCount: 0 },
+        { name: "Blogging", membersCount: 0 },
+        { name: "Podcasting", membersCount: 0 },
+        { name: "Painting", membersCount: 0 },
+        { name: "Drawing", membersCount: 0 },
+        { name: "Knitting", membersCount: 0 },
+        { name: "Pottery", membersCount: 0 },
+        { name: "Gardening", membersCount: 0 },
+        { name: "Birdwatching", membersCount: 0 },
+        { name: "Stargazing", membersCount: 0 },
+        { name: "Hiking", membersCount: 0 },
+        { name: "Cycling", membersCount: 0 },
+        { name: "Swimming", membersCount: 0 },
+        { name: "Tennis", membersCount: 0 },
+        { name: "Basketball", membersCount: 0 },
+        { name: "Soccer", membersCount: 0 },
+        { name: "Weightlifting", membersCount: 0 },
+        { name: "Meditation", membersCount: 0 },
+        { name: "Board Games", membersCount: 0 },
+        { name: "Video Gaming", membersCount: 0 },
+        { name: "Coding", membersCount: 0 },
+        { name: "Music", membersCount: 0 },
+        { name: "Dancing", membersCount: 0 },
+        { name: "Volunteering", membersCount: 0 },
+        { name: "Language Learning", membersCount: 0 },
+        { name: "Film & Cinema", membersCount: 0 },
+        { name: "DIY Home Projects", membersCount: 0 },
+        { name: "Fitness Classes", membersCount: 0 },
+        { name: "Surfing", membersCount: 0 }
       ],
 
       profileData: {
@@ -768,8 +809,8 @@ createApp({
   },
 })
   .use(GraffitiPlugin, {
-    graffiti: new GraffitiLocal(),
-    // graffiti: new GraffitiRemote(),
+    // graffiti: new GraffitiLocal(),
+    graffiti: new GraffitiRemote(),
   })
   .mount("#app");
 
