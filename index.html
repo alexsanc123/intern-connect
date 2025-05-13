@@ -654,10 +654,10 @@
                 <li v-for="team in teams
                         .filter(t => !profileData.teams.includes(t.name) &&
                                     t.name.toLowerCase().includes(searchTeams.toLowerCase()))" :key="team.name"
-                  @click="openTeam(team, 'Members')" class="team-row namehover"
+                  @click.self="openTeam(team, 'Members')" class="team-row namehover"
                   :data-namehover="`Click to enter ${team.name} page`">
                   <span>{{ team.name }}</span>
-                  <div class="action-buttons">
+                  <div class="action-buttons" @click.stop>
                     <button @click="openTeam(team, 'Chat')">
                       Chat
                     </button>
@@ -674,7 +674,7 @@
               <ul>
                 <li
                   v-for="interest in interests.filter(i => profileData.interests.includes(i.name)).filter(i => i.name.toLowerCase().includes(searchInterests.toLowerCase()))"
-                  :key="interest.name" @click="openInterest(interest, 'Members')" class="team-row namehover"
+                  :key="interest.name" @click.self="openInterest(interest, 'Members')" class="team-row namehover"
                   :data-namehover="`Click to enter ${interest.name} page`">
                   <span>{{ interest.name }}</span>
                   <graffiti-discover :channels="[ interest.name ]" :schema="{
@@ -708,10 +708,10 @@
               <ul>
                 <li
                   v-for="interest in interests.filter(i => !profileData.interests.includes(i.name) && i.name.toLowerCase().includes(searchInterests.toLowerCase()))"
-                  :key="interest.name" @click="openInterest(interest, 'Members')" class="team-row namehover"
+                  :key="interest.name" @click.self="openInterest(interest, 'Members')" class="team-row namehover"
                   :data-namehover="`Click to enter ${interest.name} page`">
                   <span>{{ interest.name }}</span>
-                  <div class="action-buttons">
+                  <div class="action-buttons" @click.stop>
                     <button @click="openInterest(interest, 'Chat')">Chat</button>
                     <join-button :joined="profileData.interests.includes(interest.name)"
                       @join="joinInterest(interest)" />
